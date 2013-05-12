@@ -1,12 +1,14 @@
 // glue between rascal.dnd and rascal.upload
 // generic upload progress, status and completion functions
 // JSLint 6 Oct 2012 jQuery $ rascal {}
+// Updated 16 Apr 2013 dsmall for rascal-1.04
+/*global $, rascal */
 
 // Assumes element id="progress", sets bg position and initially makes opaque
 function uploadProgress(pc) {
     "use strict";
-    $('#progress').css('background-position', pc + '% 0');
-    if (pc === 100) {
+    $('#progress').css('background-position', (100 - pc) + '% 0');
+    if (pc === 0) {
         $('#progress').css('opacity', 1);
     }
 }

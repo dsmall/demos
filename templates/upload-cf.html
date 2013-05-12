@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!-- 18 Jun 2012 dsmall bootstrap jquery rascal-1.03.js -->
+<!-- 16 Apr 2013 dsmall bootstrap jquery rascal-1.04.js -->
 <!-- JSLint 7 Oct 2012 jQuery $ rascal uploadItems -->
 <html lang="en">
 <head>
     <title>File Upload - Choose File</title>
     {% include "include/rascal-head.html" %}
     <link rel="stylesheet" type="text/css" href="/static/css/demo-upload.css">
-    <script src="static/js/rascal-1.03.js"></script>
+    <script src="static/js/rascal-1.04.js"></script>
     <style>
         /* Hide real file input button behind fake button */
         #fileinput {
@@ -18,8 +18,8 @@
         #file {
             position: absolute;
             visibility: hidden;
-            top: 0px;
-            left: 0px;
+            top: 0;
+            left: 0;
             z-index: 1;
         }
         .infobox {
@@ -32,6 +32,11 @@
             margin: 10px 0;
         }
     </style>    
+    <style>
+        .doc-panel {
+            width: 650px;
+        }
+    </style>
 </head>
 <body>
     {% include "include/rascal-topbar.html" %}
@@ -52,6 +57,7 @@
             <input id="clear" type="button" value="Clear Files" class="btn btn-large btn-primary" />
         </div>
     </div>
+    {% include "include/doc-tab.html" %} 
 
     <script src="static/js/demo-upload.js"></script>
 
@@ -75,7 +81,7 @@
             "use strict";
 
             // Initialise rascal.dnd 
-            rascal.dnd.container = 'file';
+            rascal.dnd.containerID = 'file';
             rascal.dnd.root = 'static/uploads/';
             rascal.dnd.filesDropped = uploadItems;
 

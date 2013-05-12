@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Tabs</title>
+    <!-- {% include "include/rascal-head.html" %} -->
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="/static/ico/favicon.ico">
+    <link href="/static/css/bootstrap-2.1.1.css" rel="stylesheet">
+    
+    <script src="/static/js/jquery-1.8.2.js"></script>
+<!--     <script src="/static/js/bs-tab.js"></script> -->
+    <script src="/static/js/bootstrap-2.1.1.js"></script>
+    <!-- <script type="text/javascript" src="/static/js/jquery.jqplot-1.0.4.js"></script> -->
+    <!-- <link rel="stylesheet" type="text/css" href="/static/css/jquery.jqplot-1.0.4.css" /> -->
+    
+    <link href="/static/css/boilerplate.css" rel="stylesheet">
+    <link href="/static/css/doc-tab.css" rel="stylesheet">
+    <style>
+        /* A little unsure about this */
+        li > a {
+            color: #E7E8E9;
+        }
+        /* Delete icon for filetab */
+        ul.nav img {
+            float: right;
+            margin-right: 3px;
+            margin-top: 2px;
+            width: 11px;
+            opacity: 0.0;
+        }
+        ul.nav img.selected {
+            opacity: 0.6;
+        }
+        ul.nav img.selected:hover {
+            opacity: 1.0;
+        }
+    </style>
+</head>
+<body>
+    {% include "include/rascal-topbar.html" %}
+    <div class="container">
+        <div class="well rascal">
+            <h2>Example tabs</h2>
+            <ul id="editortabs" class="nav nav-tabs">
+                <li class="filetab active">
+                    <img src="/editor/static/images/file-icons/delete.png">
+                    <a href="#" rel="tab-1" data-toggle="tab">home.html</a>
+                </li>
+            </ul>
+            <div id="which">Home</div>
+            <p>&nbsp;</p>
+            <input id="add_tab" type="button" value="Add Tab" class="btn btn-large btn-danger rascal" />
+        </div>
+    </div>
+    <!-- {% include "include/doc-tab.html" %} -->
+    <script type="text/javascript">
+        var instances = {
+            'tab-1': { msg: 'This is the home tab' }
+        };
+        var instance;   // An object describing the current instance
+
+        // Testing
+        $('#add_tab').click(function () {
+            var nextTab = $('li.filetab:last').clone(),
+                lastID = nextTab.children('a').attr('rel'),
+                nextID = 'tab-' + (parseInt(lastID.split('-').pop(), 10) + 1).toString();
+            console.log(nextID);
+            nextTab.removeClass('active')
+                .children('a')
+                    .attr('rel', nextID)
+                    .text('new-' + nextID);
+//                     .on('shown', function (e) { tabChanged(e); });
+            instances[nextID] = { msg: 'I am the new file-' + nextID };
+            $('#editortabs').append(nextTab);
+            $('#editortabs a:last').tab('show');
+        });
+        
+        // Change tab - need to swap CM docs
+        function tabChanged(e) {
+            "use strict";
+            var
+                prevKey = $(e.relatedTarget).attr('rel'),
+                currKey = $(e.target).attr('rel');
+            console.log('Leaving ' + prevKey);
+            console.log('Entering ' + currKey);
+            instance = instances[currKey];
+            $('#which').text(instance.msg);
+        }
+
+        // Close tab - need to check if file is changed
+        function closeTab(key) {
+            "use strict";
+            var candidate = $('li.filetab > a[rel="' + key + '"]').parent(),
+                replacement= candidate.prev();
+            if (replacement.length === 0) {
+                replacement = candidate.next();
+            }
+            replacement.children('a').tab('show');
+            // console.log(JSON.stringify(instances));
+            delete instances[key];
+            // console.log(JSON.stringify(instances));
+            candidate.remove();
+        }
+
+        $(document).ready(function () {
+            "use strict";
+
+            // Default event handler when tab shown
+//             $('a[data-toggle="tab"]').on('shown', function (e) {
+//                 tabChanged(e);
+//             });
+            $('#editortabs').on('shown', 'a[data-toggle="tab"]', function (e) {
+                tabChanged(e);
+            });
+
+            
+            // Event handler to enable/disable the filetab close icon
+            $('#editortabs').on('mouseenter mouseleave', 'li.filetab', function (event) {
+                "use strict";
+                // Only show the icon when tab is active and there is more than one tab
+                if ($(this).hasClass('active') && ($('li.filetab').length > 1)) {
+                    if (event.type === 'mouseenter') {
+                        // console.log('mouseenter');
+                        $(this).children('img').addClass('selected');
+                    } else {
+                        // console.log('mouseleave');
+                        $(this).children('img').removeClass('selected');
+                    }
+                }
+            });
+
+            // Event handler for clicking the filetab close icon
+            $('#editortabs').on('click', 'li.filetab > img', function (event) {
+                "use strict";
+                var key = $(this).parent().children('a').attr('rel');
+                console.log('Closing ' + key);
+                closeTab(key);
+            });
+        });
+    </script>
+</body>
+</html>

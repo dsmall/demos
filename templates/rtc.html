@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!-- JSLint 7 Oct 2012 jQuery $ tolerate bitwise  -->
+<html lang="en">
+<head>
+    <title>RTC DS1340</title>
+    {% include "include/rascal-head.html" %}
+    <style>
+        .well.lcd-frame {
+            margin: 10px 0;
+            border: 10px solid #333;
+            color: #ccc;
+            background-color: #3464c6;
+            width: 722px;
+            display: inline-block;
+        }
+        .timestamp {
+            margin: 0 auto;
+            padding: 30px 0 20px;
+            font-family: monaco;
+            font-size: 3em;
+            width: 570px;
+        }
+    </style>
+</head>
+<body>
+    {% include "include/rascal-topbar.html" %}
+    <div class="container">
+        
+        <div class="well rascal">
+            
+            <div class="row">
+                <div class="span10">
+                    <div class="well lcd-frame">
+                        <h1>RTC DS1340</h1>
+                        <div id="timestamp" class="timestamp">&nbsp;</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="span5">
+                    <button id="set_rtc" class="btn btn-large btn-danger rascal">Set time</button>
+                    <!-- <input type="color" value="#3464c6" /> -->
+                </div>
+                <div class="span5">
+                    <span style="float: right;">
+                        <button id="start" class="btn btn-large btn-success disabled rascal">Start</button>
+                        <button id="reset" class="btn btn-large btn-default rascal">Reset</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    {% include "include/doc-tab.html" %}
+    <script language="javascript" type="text/javascript">
+
+        var
+            showDate = true,
+            firstTime = false,
+            int_timer;
+
+        function get_digits(v) {
+            "use strict";
+            return ('00' + parseInt(v, 10).toString(16)).substr(-2);
+        }
+
+        function display_time(time) {
+            "use strict";
+            var s = '';
+            if (showDate) {
+                s = '20';
+                s += get_digits(time[6]) + '-';
+                s += get_digits(time[5]) + '-';
+                s += get_digits(time[4]) + ' ';
+            }
+            s += get_digits(time[2]) + ':';
+            s += get_digits(time[1]) + ':';
+            s += get_digits(time[0] & 0x7f);
+            $('#timestamp').text(s);
+            // console.log(time[0]);
+        }
+
+        function read_rtc() {
+            "use strict";
+            $.post('/rtc', function (response) {
+                display_time(JSON.parse(response));
+                if (firstTime) {
+                    firstTime = false;
+                    int_timer = clearInterval(int_timer);
+                    int_timer = setInterval(read_rtc, 1000);
+                }
+            });
+        }
+
+        function send_command(cmd) {
+            "use strict";
+            // Also sets int_timer to undefined
+            int_timer = clearInterval(int_timer);
+            $.post('/rtc', { command: cmd }, function (response) {
+                display_time(JSON.parse(response));
+                if (cmd === 'set_rtc' || cmd === 'start') {
+                    firstTime = true;
+                    int_timer = setInterval(read_rtc, 1200);
+                }
+            });
+        }
+
+        $('#set_rtc').click(function () {
+            "use strict";
+            $('#timestamp').text('Please wait...');
+            showDate = true;
+            send_command('set_rtc');
+            $('#start')
+                .addClass('disabled')
+                .removeClass('btn-warning')
+                .addClass('btn-success')
+                .text('Start');
+        });
+
+        $('#start').click(function () {
+            "use strict";
+            var sb = $('#start'),
+                cmd;
+            if (!sb.hasClass('disabled')) {
+                if (sb.text() === 'Start') {
+                    sb.removeClass('btn-success')
+                        .addClass('btn-warning')
+                        .text('Stop');
+                    cmd = 'start';
+                } else {
+                    sb.removeClass('btn-warning')
+                        .addClass('btn-success')
+                        .text('Start');
+                    cmd = 'stop';
+                }
+                send_command(cmd);
+            }
+        });
+
+        $('#reset').click(function () {
+            "use strict";
+            showDate = false;
+            send_command('reset');
+            $('#start')
+                .removeClass('disabled')
+                .removeClass('btn-warning')
+                .addClass('btn-success')
+                .text('Start');
+        });
+
+        $(document).ready(function () {
+            "use strict";
+            read_rtc();
+            int_timer = setInterval(read_rtc, 1000);
+        });
+
+    </script>
+</body>
+</html>

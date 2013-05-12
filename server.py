@@ -1,15 +1,27 @@
 from flask import Flask, render_template, request
-import api, os, pytronics, time
-import libblinkm, libfourdsystems, libvoltageshield, libservo, joystick
-from uwsgidecorators import *
+import os, time
+
+# Support multiple environments 
+(RASCAL, MAC, WINDOWS) = (range(0, 3))
+
+### Define environment here
+env = RASCAL
+### End define
+
+if env == WINDOWS:
+    ROOT = 'c:/www/public/'
+    EDITOR = 'http://localhost:5001/editor/'
+elif env == MAC:
+    ROOT = '/var/www/public/'
+    EDITOR = 'http://localhost:5001/editor/'
+else:
+    from uwsgidecorators import *
+    import pytronics
+    ROOT = '/var/www/public/'
+    EDITOR = '/editor/'
+# End environment definitions
 
 public = Flask(__name__)
-public.register_blueprint(api.public)
-public.register_blueprint(libblinkm.public)
-public.register_blueprint(libfourdsystems.public)
-public.register_blueprint(libvoltageshield.public)
-public.register_blueprint(libservo.public)
-public.register_blueprint(joystick.public)
 public.config['PROPAGATE_EXCEPTIONS'] = True
 
 # Include "no-cache" header in all POST responses
@@ -18,6 +30,50 @@ def add_no_cache(response):
     if request.method == 'POST':
         response.cache_control.no_cache = True
     return response
+
+if env == RASCAL:
+    import api
+    public.register_blueprint(api.public)
+    import libblinkm
+    public.register_blueprint(libblinkm.public)
+#     import libfourdsystems
+#     public.register_blueprint(libfourdsystems.public)
+#     import libvoltageshield
+#     public.register_blueprint(libvoltageshield.public)
+#     import libservo
+#     public.register_blueprint(libservo.public)
+#     import joystick
+#     public.register_blueprint(joystick.public)
+
+""" dsmall stuff """
+import lib_smtp
+public.register_blueprint(lib_smtp.public)
+
+import lib_news
+public.register_blueprint(lib_news.public)
+
+if env == RASCAL:
+    import lib_i2c_lcd
+    public.register_blueprint(lib_i2c_lcd.public)
+    import lib_i2c_rtc
+    public.register_blueprint(lib_i2c_rtc.public)
+    import lib_12c_dimmer
+    public.register_blueprint(lib_12c_dimmer.public)
+
+""" Background task to write uptime and temperature to LCD """
+if env == RASCAL:
+    @rbtimer(5)
+    def update_lcd(num):
+        from lib_i2c_lcd import reset, writeString, setCursor
+        reset()
+        # localtime = time.localtime()
+        # writeString(time.strftime('%H:%M:%S %Z', localtime))
+        writeString(uptime())
+        setCursor(1, 0)
+        artemp = pytronics.i2cRead(0x48, 0, 'I', 2)
+        ftemp = ((artemp[0] << 4) | (artemp[1] >> 4)) * 0.0625
+        writeString('Temp {0:0.1f}'.format(ftemp))
+        writeString(chr(0xdf) + 'C')
 
 # config for upload
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
@@ -33,11 +89,11 @@ def default_page():
             name = f.read().strip().capitalize()
     except:
         name = 'Rascal'
-    return render_template('/index.html', hostname=name, template_list=get_public_templates())
+    return render_template('/index.html', hostname=name, editor=EDITOR, template_list=get_public_templates())
 
 def get_public_templates():
     r = []
-    d = '/var/www/public/templates'
+    d = ROOT + 'templates'
     for f in os.listdir(d):
         ff=os.path.join(d,f)
         if os.path.isfile(ff):
@@ -58,6 +114,18 @@ def datetime():
         format = '%d %b %Y %H:%M %Z'
     return time.strftime(format, time.localtime())
 
+# Return uptime (Rascal only)
+@public.route('/uptime', methods=['POST'])
+def uptime():
+    if env == RASCAL:
+        from datetime import timedelta
+        with open('/proc/uptime', 'r') as f:
+            uptime_secs = float(f.readline().split()[0])
+            td = timedelta(seconds = uptime_secs)
+            return 'Up {0:d}d {1:02d}:{2:02d}:{3:02d}'.format(td.days,
+                td.seconds//(60*60), (td.seconds%(60*60))//60, td.seconds%60)
+    return ''
+
 ### Generic HTML and Markdown templates, support for doc tab ###
 @public.route('/<template_name>.html')
 def template(template_name):
@@ -71,27 +139,107 @@ def document(doc_name):
 def document_docs(doc_name):
     return render_markdown('docs/', doc_name)
 
+# Render a markdown template within documentation.html
 def render_markdown(path, doc_name):
     import markdown2
-    with open('/var/www/public/templates/' + path + doc_name + '.md', 'r') as mdf:
-        return render_template('documentation.html', title=doc_name, markdown=markdown2.markdown(mdf.read()))
+    with open(ROOT + 'templates/' + path + doc_name + '.md', 'r') as mdf:
+        return render_template('documentation.html', title=doc_name,
+            markdown=markdown2.markdown(mdf.read(), use_file_vars=True))
     return 'Not Found', 404
 
+# Render markdown in Docs tab
 @public.route('/get_markdown', methods=['POST'])
 def get_markdown():
     import markdown2
     doc_name = request.form['docName']
     try:
-        with open('/var/www/public/templates/docs/' + doc_name + '.md', 'r') as mdf:
-            return markdown2.markdown(mdf.read())
+        with open(ROOT + 'templates/docs/' + doc_name + '.md', 'r') as mdf:
+            return markdown2.markdown(mdf.read(), use_file_vars=True)
     except:
         try:
-            with open('/var/www/public/templates/' + doc_name + '.md', 'r') as mdf:
-                return markdown2.markdown(mdf.read())
+            with open(ROOT + 'templates/' + doc_name + '.md', 'r') as mdf:
+                return markdown2.markdown(mdf.read(), use_file_vars=True)
         except:
-            with open('/var/www/public/templates/docs/default.md', 'r') as mdf:
-                return markdown2.markdown(mdf.read())
-    return 'Internal server error', 500
+            with open(ROOT + 'templates/docs/default.md', 'r') as mdf:
+                return markdown2.markdown(mdf.read(), use_file_vars=True)
+    return 'Not Found', 404
+
+### Support for rascal javascript library ###
+# They are called from rascal-1.03.js and used by upload-cf.html, upload-dd.html and album.html
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_folder(folder):
+    return folder in ALLOWED_DIRECTORIES
+
+@public.route('/xupload', methods=['POST'])
+def xupload_file():
+    import os
+    from werkzeug import secure_filename
+    from werkzeug.exceptions import RequestEntityTooLarge
+    if request.method == 'POST':
+        try:
+            # Check file type and folder
+            filename = secure_filename(request.headers['X-File-Name'])
+            if not allowed_file(filename):
+                print '## xupload ## bad file type ' + filename
+                return 'Forbidden', 403
+            try:
+                folder = request.headers['X-Folder']
+            except:
+                folder = ''
+            if not allowed_folder(folder):
+                print '## xupload ## bad folder ' + folder
+                return 'Forbidden', 403
+            fpath = os.path.join(ROOT, os.path.join(folder, filename))
+            # Write out the stream
+            f = file(fpath, 'wb')
+            f.write(request.stream.read())
+            f.close()
+            print '## xupload ## ' + fpath
+        except RequestEntityTooLarge:
+            return 'File too large', 413
+        except:
+            return 'Bad request', 400
+    return 'OK', 200
+
+@public.route('/list-directory', methods=['POST'])
+def list_directory():
+    import os, json
+    dir = request.form['directory']
+    try:
+        dirlist = sorted(os.listdir(os.path.join(ROOT, dir)), key=unicode.lower)
+        return json.JSONEncoder().encode(dirlist)
+    except OSError:
+        return 'Not Found', 404
+    except Exception, e:
+        print '## list_directory ## {0}'.format(e)
+    return 'Bad request', 400
+
+@public.route('/clear-directory', methods=['POST'])
+def clear_directory():
+    import os
+    dir = request.form['directory']
+    if dir not in ALLOWED_DIRECTORIES:
+        return 'Forbidden', 403
+    folder = os.path.join(ROOT, dir)
+    try:
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception, e:
+                print '## clear_directory ## {0}'.format(e)
+                return 'Bad request', 400
+        return 'OK', 200
+    except OSError:
+        return 'Not Found', 404
+    except Exception, e:
+        print '## clear_directory ## {0}'.format(e)
+    return 'Bad request', 400
+### End of upload procedures ###
 
 ### Specific demos ###
 # analog-graph
@@ -182,114 +330,34 @@ def set_color():
 
 ### The following procedures support sending email via SMTP ###
 # They are used by email.html. Configure smtp settings in smtp_lib.py
-@public.route('/')
-@public.route('/email.html')
-def email_form():
-    import smtp_lib
-    return render_template('email.html', sender=smtp_lib.sender(), help=smtp_lib.help())
-
-@public.route('/send-email', methods=['POST'])
-def send_email():
-    import smtp_lib, json
-    sender = request.form['sender'].strip()
-    recipients = request.form['recipients'].strip()
-    subject = request.form['subject'].strip()
-    body = request.form['body'].strip()
-    if sender == '':
-        result = (1, 'Please enter the sender')
-    elif recipients == '':
-        result = (1, 'Please enter at least one recipient')
-    else:
-        result = smtp_lib.sendmail(sender, recipients, subject, body)
-    data = {
-        "status" : int(result[0]),
-        "message" : result[1]
-    }
-    return json.dumps(data)
+# @public.route('/')
+# @public.route('/email.html')
+# def email_form():
+#     import smtp_lib
+#     return render_template('email.html', sender=smtp_lib.sender(), help=smtp_lib.help())
+# 
+# @public.route('/send-email', methods=['POST'])
+# def send_email():
+#     import smtp_lib, json
+#     sender = request.form['sender'].strip()
+#     recipients = request.form['recipients'].strip()
+#     subject = request.form['subject'].strip()
+#     body = request.form['body'].strip()
+#     if sender == '':
+#         result = (1, 'Please enter the sender')
+#     elif recipients == '':
+#         result = (1, 'Please enter at least one recipient')
+#     else:
+#         result = smtp_lib.sendmail(sender, recipients, subject, body)
+#     data = {
+#         "status" : int(result[0]),
+#         "message" : result[1]
+#     }
+#     return json.dumps(data)
 ### End of email procedures
 
-### The following procedures support file upload ###
-# They are called from rascal-1.03.js and used by upload-cf.html, upload-dd.html and album.html
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def allowed_folder(folder):
-    return folder in ALLOWED_DIRECTORIES
-
-@public.route('/xupload', methods=['POST'])
-def xupload_file():
-    import os
-    from werkzeug import secure_filename
-    from werkzeug.exceptions import RequestEntityTooLarge
-    if request.method == 'POST':
-        try:
-            root = '/var/www/public/'
-            # Check file type and folder
-            filename = secure_filename(request.headers['X-File-Name'])
-            if not allowed_file(filename):
-                print '## xupload ## bad file type ' + filename
-                return 'Forbidden', 403
-            try:
-                folder = request.headers['X-Folder']
-            except:
-                folder = ''
-            if not allowed_folder(folder):
-                print '## xupload ## bad folder ' + folder
-                return 'Forbidden', 403
-            fpath = os.path.join(root, os.path.join(folder, filename))
-            # Write out the stream
-            f = file(fpath, 'wb')
-            f.write(request.stream.read())
-            f.close()
-            print '## xupload ## ' + fpath
-        except RequestEntityTooLarge:
-            return 'File too large', 413
-        except:
-            return 'Bad request', 400
-    return 'OK', 200
-
-@public.route('/list-directory', methods=['POST'])
-def list_directory():
-    import os, json
-    root = '/var/www/public/'
-    dir = request.form['directory']
-    try:
-        dirlist = os.listdir(os.path.join(root, dir))
-        return json.JSONEncoder().encode(dirlist)
-    except OSError:
-        return 'Not Found', 404
-    except Exception, e:
-        print '## list_directory ## {0}'.format(e)
-    return 'Bad request', 400
-
-@public.route('/clear-directory', methods=['POST'])
-def clear_directory():
-    import os
-    root = '/var/www/public/'
-    dir = request.form['directory']
-    if dir not in ALLOWED_DIRECTORIES:
-        return 'Forbidden', 403
-    folder = os.path.join(root, dir)
-    try:
-        for the_file in os.listdir(folder):
-            file_path = os.path.join(folder, the_file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            except Exception, e:
-                print '## clear_directory ## {0}'.format(e)
-                return 'Bad request', 400
-        return 'OK', 200
-    except OSError:
-        return 'Not Found', 404
-    except Exception, e:
-        print '## clear_directory ## {0}'.format(e)
-    return 'Bad request', 400
-### End of upload procedures ###
-
 # datalogger stuff
-# @rbtimer(30)
+@rbtimer(30)
 def log_value(num):
     import datalogger
     artemp = pytronics.i2cRead(0x48, 0, 'I', 2)
@@ -297,7 +365,7 @@ def log_value(num):
     # print '## temp_log ## ' + str(ftemp)
     datalogger.log(ftemp)
 
-#@cron(-30, -1, -1, -1, -1)
+@cron(-30, -1, -1, -1, -1)
 def update_byhour(num):
     import datalogger
     rows = datalogger.update_byhour()
@@ -316,6 +384,17 @@ def getlog():
     except KeyError:
         period = 'live'
     return datalogger.getlog(period)
+
+# dsmall stuff
+# Reload editor button
+@public.route('/reload', methods=['POST'])
+def reload():
+    import subprocess
+    res = subprocess.call(['touch', '/etc/uwsgi/editor.ini'])
+    if res <> 0:
+        return 'Bad request', 400
+    return 'OK', 200
+
 
 if __name__ == "__main__":
     public.run(host='127.0.0.1:5000', debug=True)

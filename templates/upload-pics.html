@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<!-- 14 Apr 2013 dsmall bootstrap jquery rascal-1.04.js -->
+<!-- JSLint 7 Oct 2012 jQuery $ rascal uploadItems -->
+<html lang="en">
+<head>
+    <title>Upload Pictures</title>
+    {% include "include/rascal-head.html" %}
+    <script src="static/js/rascal-1.04.js"></script>
+    <style>
+        .well.rascal {
+            padding: 5px;
+            color: #eee;
+            background-color: #444;
+        }
+
+        /* Container for file list with DND indicator */
+        .list {
+            border: 2px solid #555;
+            -moz-border-radius: 5px;
+            -webkit-border-radius: 5px;
+            border-radius: 5px;
+            padding: 5px 10px 20px;
+            /* padding 0 10px 0 0; */
+            margin: 10px 0;
+            height: 440px;
+            color: #333;
+            background-color: #ffffff;
+            overflow: auto;
+        }
+        .list.dragover {
+            border: 2px solid #8284B6;
+            box-shadow: 0 0 12px #6666DD;
+        }
+
+        /* Files shown in an unnumbered list */
+        ul.files {
+            padding: 5px 0 5px 10px;
+            margin: 0px;
+        }
+        /* Clicking a file highlights its LI element */
+        ul.files > li {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+        ul.files > li.clicked {
+            background-color: #eeeeee;
+        }
+        /* Clickable A elements */
+        ul.files a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 0 0 0 2px;
+        }
+        /* Selected when mouseover */
+        ul.files a.selected {
+            background-color: #ebf2fc;
+        }
+
+        /* Simple picture frame with optional status element */
+        .frame {
+            background-color: #828282;
+        }
+        .status {
+            color: #fff;
+            padding: 10px 20px;
+        }
+
+        /* Styles for progress bar */
+        .progress-save {
+            margin-top: 5px; 
+        }
+        .progress.rascal {
+            height: 10px;
+            margin-bottom: 8px;
+        }
+        /* http://stackoverflow.com/questions/9622043 */
+        .progress.rascal .bar {
+            -webkit-transition: none;
+            -moz-transition: none;
+            -ms-transition: none;
+            -o-transition: none;
+            transition: none;
+        }
+    </style>
+    <style>
+        .doc-panel {
+            width: 650px;
+        }
+    </style>
+</head>
+<body>
+    {% include "include/rascal-topbar.html" %}
+    <div class="container-fluid" style="margin-left: 24px;">
+        <div class="row-fluid">
+            <div class="span3">
+                <div id="filelist-well" class="well rascal">
+                    <small>Drag image files here</small>
+                    <div id="filelist" class="list"></div>
+                    <div class="progress-save">
+                        <div id="save-progress" class="progress progress-danger rascal">
+                            <div id="save-bar" class="bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <input id="clear" type="button" value="Clear Files" class="btn btn-primary" />
+                </div><!--/.well -->
+            </div>
+            <div class="span9">
+                <div class="well rascal">
+                    <div id="frame-p" class="frame"></div>
+                    <div id="caption-p" class="caption">&nbsp;</div>
+                </div><!--/.well -->
+            </div>
+        </div> <!-- /row -->
+    </div> <!-- /container -->
+    {% include "include/doc-tab.html" %} 
+
+    <script type="text/javascript">
+        
+        var ADJUSTSIZE = true;
+        var XH = 210;   // Make this large enough to stop the resized window scrolling
+
+        /* SUPPORT FOR DND UPLOAD */
+        // Updates the progress bar
+        function uploadProgress(pc) {
+            "use strict";
+            $('#save-bar').css('width', pc + '%');
+        }
+        
+        // Assumes element id="status" and appends messages
+        function uploadStatus(msg) {
+            "use strict";
+            $('#status').html($('#status').html() + msg + '<br />');
+        }
+        
+        // On completion, remove progress bar stripes and list directory
+        function uploadComplete() {
+            "use strict";
+            $('#save-progress')
+                .removeClass('active')
+                .removeClass('progress-striped');
+            rascal.directory.listDirectory();
+        }
+        
+        // Glue that enables rascal.dnd to upload files
+        // Sets file types that can be uploaded
+        // Connects progress, status and completion functions
+        function uploadItems(files, dst) {
+            "use strict";
+            var ru = rascal.upload;
+            // set up allowed types, progress, status and complete
+            ru.allowedTypes = [ 'image/' ];
+            ru.progress = uploadProgress;
+            ru.status = uploadStatus;
+            ru.complete = uploadComplete;
+            // prepare progress bar
+            $('#save-bar').css('width', '0%');
+            $('#save-progress')
+                .addClass('progress-striped')
+                .addClass('active');
+            // replace picture with status area, clear caption
+            rascal.picture.empty();
+            $('#frame-p').html('<div id="status" class="status"></div>');
+            $('#caption-p').html('&nbsp;');
+            // start uploading the dropped files
+            ru.filesDropped(files, dst);
+        }
+        
+        // SHOW PICTURE RESIZED TO ITS CONTAINER
+        function showPicture(file) {
+            "use strict";
+            rascal.picture.show(rascal.directory.directory + file);
+        }
+
+        /* FILE LIST MANAGEMENT */
+        // Transform a filename into a list element with a link
+        function list_transform(filename) {
+            return '<li class="file"><a href="#" rel="' + filename + '">' + filename + '</a></li>';
+        }
+        // When list is complete
+        function list_complete() {
+            // No action required (click on file name is delegated)
+        }
+
+        /* CALLED WHEN "Clear Files" BUTTON IS CLICKED */
+        $('#clear').click(function () {
+            "use strict";
+            rascal.directory.clearDirectory(rascal.directory.listDirectory);
+            // clear picture or status
+            rascal.picture.empty();
+            // clear caption
+            $('#caption-p').html('&nbsp;');
+            // reset progress bar to zero
+            uploadProgress(0);
+        });
+
+        /* SUPPORT FOR RESIZING */
+        // Call adjustGeometry when resize events stop for 0.5s
+        var delay = (function () {
+            "use strict";
+            var timer = 0;
+            return function (callback, ms) {
+                clearTimeout(timer);
+                timer = setTimeout(callback, ms);
+            };
+        })();
+
+        // Only the height needs to be adjusted (bootstrap fluid styles adjust the width)
+        function adjustGeometry() {
+            "use strict";
+            var h, dh;
+            if (ADJUSTSIZE) {
+                h = $(window).height();
+                dh = (h > (440 + XH)) ? h - (440 + XH) : 0;
+                $('#filelist').height(440 + dh);
+                $('#frame-p').height($('#filelist-well').height()-$('#caption-p').height());
+                if (rascal.picture.showing) {
+                    rascal.picture.resize();
+                }
+            }
+        }
+
+        /* INITIALISE THE RASCAL LIBRARIES AFTER EVERYTHING IS LOADED */
+        $(document).ready(function () {
+            "use strict";
+            
+            // Set up geometry - make top bar fluid
+            $('div.navbar-inner > div.container')
+                .removeClass('container')
+                .addClass('container-fluid');
+
+            // Make picture frame height the same as filelist
+            $('#frame-p').height($('#filelist-well').height()-$('#caption-p').height());
+            adjustGeometry();
+
+            // Initialise rascal.dnd 
+            rascal.dnd.containerID = 'filelist';
+            rascal.dnd.root = 'static/uploads/';
+            rascal.dnd.filesDropped = uploadItems;
+            rascal.dnd.init();
+
+           // Initialise rascal.directory
+            rascal.directory.directory = 'static/uploads/';
+            rascal.directory.listID = 'filelist';
+            rascal.directory.prefix = '<ul class="files">'
+            rascal.directory.transform = list_transform;
+            rascal.directory.delimiter = '';
+            rascal.directory.suffix = '</ul>'
+            rascal.directory.complete = list_complete;
+            
+            // Initialise rascal.picture
+            rascal.picture.containerID = 'frame-p';
+            rascal.picture.captionID = 'caption-p';
+
+            // Add a delegated event to highlight file names as the mouse passes over them
+            $('#filelist').on('mouseenter mouseleave', 'li.file', function (event) {
+                "use strict";
+                event.preventDefault();
+                if (event.type === 'mouseenter') {
+                    $(this).children('a').addClass('selected');
+                } else {
+                    $(this).children('a').removeClass('selected');
+                }
+            });
+            
+            // Add a delegated event to show picture when file name is clicked
+            $('#filelist').on('click', 'li.file > a', function(event) {
+                event.preventDefault();
+                // Remove any previous highlighting
+                $('li.file').removeClass('clicked');
+                // Highlight clicked filename
+                $(this).parent().addClass('clicked');
+                showPicture($(this).attr('rel'));
+            });
+
+            // Load file names from the uploads folder
+            rascal.directory.listDirectory();
+            
+            // Connect resize to adjustGeometry
+            $(window).resize(function () {
+                delay(function () {
+                    adjustGeometry();
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
