@@ -1,15 +1,15 @@
-/* Library started by dsmall 2012 v1.03 */
-// JSLint 6 Oct 2012 jQuery $
-
+/* Library dsmall 2012-13 v1.04 last update 6 May 2013 */
 // NB Event handlers need to be named and static to avoid duplication
+
+/*global $, console, document, XMLHttpRequest, alert, clearInterval, setInterval */
 
 var rascal = {
     // Add drag and drop to jquery.filetree
     dnd: {
         root: '/var/www/public/',
-        container: 'filetree',
+        containerID: 'filetree',
         notDraggable: [],
-        changedFile: undefined,
+        changedFiles: [],
         itemDropped: function (src, dst) {
             "use strict";
         },
@@ -27,7 +27,7 @@ var rascal = {
             evt.stopPropagation();
             evt.preventDefault();
             evt.dataTransfer.dropEffect = 'copy';
-            if (this.id === rascal.dnd.container) {
+            if (this.id === rascal.dnd.containerID) {
                 $(this).addClass('dragover');
             } else {
                 $(this).children('A').addClass('dragover');
@@ -38,7 +38,7 @@ var rascal = {
             var src, srcDir, dst;
             evt.stopPropagation();
             evt.preventDefault();
-            if (this.id === rascal.dnd.container) {
+            if (this.id === rascal.dnd.containerID) {
                 dst = rascal.dnd.root;
             } else {
                 dst = this.querySelector('a').rel;
@@ -61,7 +61,7 @@ var rascal = {
                 console.log('choose files to ' + dst);
                 rascal.dnd.filesDropped(evt.target.files, dst);
             }
-            if (this.id === rascal.dnd.container) {
+            if (this.id === rascal.dnd.containerID) {
                 $(this).removeClass('dragover');
             } else {
                 $(this).children('A').removeClass('dragover');
@@ -71,7 +71,7 @@ var rascal = {
             "use strict";
             evt.stopPropagation();
             evt.preventDefault();
-            if (this.id === rascal.dnd.container) {
+            if (this.id === rascal.dnd.containerID) {
                 $(this).removeClass('dragover');
             } else {
                 $(this).children('A').removeClass('dragover');
@@ -80,14 +80,14 @@ var rascal = {
         init: function () {
             "use strict";
             var el;
-            el = document.getElementById(rascal.dnd.container);
+            el = document.getElementById(rascal.dnd.containerID);
             el.addEventListener('dragover', rascal.dnd.handleDragOver, false);
             el.addEventListener('drop', rascal.dnd.handleDrop, false);
             el.addEventListener('dragleave', rascal.dnd.handleDragLeave, false);
         },
         bindTree: function (t) {
             "use strict";
-            var el, dragItems, dragTargets, i;
+            var el, dragItems, dragTargets, i, path;
             // Make all items draggable except for those in notDraggable array
             $(t).find('LI A').attr('draggable', function () {
                 if ($.inArray(this.rel, rascal.dnd.notDraggable) >= 0) {
@@ -114,8 +114,10 @@ var rascal = {
                 dragTargets[i].addEventListener('drop', rascal.dnd.handleDrop, false);
                 dragTargets[i].addEventListener('dragleave', rascal.dnd.handleDragLeave, false);
             }
-            if (rascal.dnd.changedFile !== undefined) {
-                $('LI A[rel="' + rascal.dnd.changedFile + '"]').addClass('changed');
+            console.log('<- ' + JSON.stringify(rascal.dnd.changedFiles));
+            for (i = 0; i < rascal.dnd.changedFiles.length; i += 1) {
+                console.log('-> ' + rascal.dnd.changedFiles[i]);
+                $('li > a[rel="' + rascal.dnd.changedFiles[i] + '"]').addClass('changed');
             }
         }
     },
@@ -123,11 +125,14 @@ var rascal = {
     upload: {
         postUrl: '/xupload',
         directory: 'static/uploads/',
+        allowAll: false,
         allowedTypes: [ 'image/' ],
+        allowedExtensions: [],
         maxFileBytes: 1024 * 1024,
         timeout: 40,
         totalBytes: 0,
         loadedBytes: 0,
+        savedFiles: 0,
         files: [],
         nextFile: -1,
         int_inFlight: undefined,
@@ -142,6 +147,10 @@ var rascal = {
             "use strict";
             console.log('rascal.upload: ' + msg);
         },
+        uploaded: function (file, dst) {
+            "use strict";
+            console.log('rascal.upload: ' + file + ' ' + dst);
+        },
         complete: function (directory) {
             "use strict";
             console.log('rascal.upload: complete');
@@ -155,8 +164,8 @@ var rascal = {
                 // Listen to progress and update bar
                 xhr.upload.addEventListener('progress', function (e) {
                     if (e.lengthComputable) {
-                        // var pc = parseInt(100 - (e.loaded / e.total * 100), 10);
-                        var pc = parseInt(100 - ((rascal.upload.loadedBytes + e.loaded) / rascal.upload.totalBytes * 100), 10);
+                        // var pc = parseInt(((e.loaded / e.total) * 100), 10);
+                        var pc = parseInt(((rascal.upload.loadedBytes + e.loaded) / rascal.upload.totalBytes * 100), 10);
                         rascal.upload.progress(pc);
                     }
                 }, false);
@@ -168,7 +177,11 @@ var rascal = {
                             // rascal.upload.status(' - success', 1);
                             rascal.upload.loadedBytes += file.size;
                             // console.log('Upload complete ' + file.name);
+                            rascal.upload.savedFiles += 1;
                             rascal.upload.lastUpload = file.name;
+                            if (typeof rascal.upload.uploaded === 'function') {
+                                rascal.upload.uploaded(file.name, rascal.upload.directory);
+                            }
                         } else if (xhr.status === 0) {
                             rascal.upload.status('Upload of ' + file.name + ' aborted');
                         } else {
@@ -184,7 +197,8 @@ var rascal = {
                     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                     xhr.setRequestHeader('X-File-Name', file.name);
                     xhr.setRequestHeader('X-Folder', rascal.upload.directory);
-                    // Set Content-type
+                    xhr.setRequestHeader('X-AllowAll', rascal.upload.allowAll.toString());
+                   // Set Content-type
                     // Safari sets it to application/x-www-form-urlencoded
                     //   need to override because this causes Werkzeug to parse the stream
                     // Firefox sets it to file type
@@ -202,6 +216,7 @@ var rascal = {
                 alert("Sorry, XMLHttpRequest upload doesn't seem to be supported by your browser.");
             }
         },
+        // Runs every 500ms until all files have been uploaded
         uploadFiles: function () {
             "use strict";
             var ru = rascal.upload, f;
@@ -214,6 +229,7 @@ var rascal = {
                     ru.uploadFile(f);
                 } else {
                     ru.int_inFlight = clearInterval(ru.int_inFlight);
+                    ru.progress(100);
                     ru.complete(ru.directory);
                 }
             } else {
@@ -228,12 +244,18 @@ var rascal = {
         filesDropped: function (files, dst) {
             "use strict";
             var ru = rascal.upload, i, f;
-            function isAllowed(ft) {
+            function isAllowed(ft, fn) {
                 var j;
+                if (ru.allowAll) {
+                    return true;
+                }
                 for (j = 0; j < ru.allowedTypes.length; j += 1) {
                     if (ft.indexOf(ru.allowedTypes[j]) === 0) {
                         return true;
                     }
+                }
+                if ($.inArray(fn.split('.').pop().toLowerCase(), ru.allowedExtensions) !== -1) {
+                    return true;
                 }
                 return false;
             }
@@ -241,11 +263,12 @@ var rascal = {
             ru.directory = dst;
             ru.totalBytes = 0;
             ru.loadedBytes = 0;
+            ru.savedFiles = 0;
             ru.lastUpload = '';
             for (i = 0; i < files.length; i += 1) {
                 f = files[i];
                 // Validate file type and size
-                if (!isAllowed(f.type)) {
+                if (!isAllowed(f.type, f.name)) {
                     ru.status(f.name + ' (' + f.type + ') isn\'t a file type that can be uploaded');
                 } else if (f.size >= ru.maxFileBytes) {
                     ru.status(f.name + ' (' + f.type + ') is too large (limit is ' +
@@ -256,7 +279,7 @@ var rascal = {
                 }
             }
             if (ru.files.length > 0) {
-                ru.progress(100);
+                ru.progress(0);
                 ru.nextFile = -1;
                 // console.log('totalBytes ' + ru.totalBytes);
                 ru.uploadFiles();
@@ -268,19 +291,36 @@ var rascal = {
     directory: {
         directory: 'static/uploads',
         listID: 'filelist',
+        prefix: '',
+        transform: undefined,
+        delimiter: '<br/>',
+        suffix: '',
+        complete: function () {
+            "use strict";
+            console.log('rascal.directory: complete');
+        },
         // Convert returned JSON object into an array, allowing use of join
         listDirectory: function () {
             "use strict";
             $.post("/list-directory", { directory: rascal.directory.directory }, function (response) {
-                var results = Array.prototype.slice.call($.parseJSON(response));
-                $('#' + rascal.directory.listID).html(results.join('<br />'));
+                var
+                    results = Array.prototype.slice.call($.parseJSON(response)),
+                    rd = rascal.directory,
+                    i;
+                if (rd.transform !== undefined) {
+                    for (i = 0; i < results.length; i += 1) {
+                        results[i] = rd.transform(results[i]);
+                    }
+                }
+                $('#' + rd.listID).html(rd.prefix + results.join(rd.delimiter) + rd.suffix);
+                rd.complete();
             }).error(function (jqXHR, textStatus, errorThrown) {
                 if (errorThrown === 'NOT FOUND') {
                     $('#' + rascal.directory.listID).html('Folder "' + rascal.directory.directory + '" not found');
                 }
             });
         },
-        // Clear directory then list it
+        // Clear directory, call completion function if there is one
         clearDirectory: function (cf) {
             "use strict";
             if (cf !== undefined) {
@@ -295,8 +335,9 @@ var rascal = {
     // Support for picture scaling
     picture: {
         imgRoot: '/',
-        container: '',
-        caption: '',
+        fpath: '',
+        containerID: '',
+        captionID: '',
         gap: 50,
         naturalWidth: 0,
         naturalHeight: 0,
@@ -304,7 +345,8 @@ var rascal = {
         show: function (fpath) {
             "use strict";
             var rp = rascal.picture, rpc, img;
-            rpc = '#' + rp.container;
+            rp.fpath = fpath;
+            rpc = '#' + rp.containerID;
             $(rpc).children().remove();
             $(rpc).append('<img />');
             img = $(rpc + ' > img');
@@ -314,8 +356,8 @@ var rascal = {
                 rp.naturalWidth = img[0].naturalWidth;
                 rp.naturalHeight = img[0].naturalHeight;
                 console.log('nw=' + rp.naturalWidth + ', nh=' + rp.naturalHeight);
-                if (rp.caption !== '') {
-                    $('#' + rp.caption).text(fpath + ' (' + rp.naturalWidth + ' x ' + rp.naturalHeight + ')');
+                if (rp.captionID !== '') {
+                    $('#' + rp.captionID).text(fpath + ' (' + rp.naturalWidth + ' x ' + rp.naturalHeight + ')');
                 }
                 rp.resize();
             });
@@ -325,9 +367,9 @@ var rascal = {
         resize: function () {
             "use strict";
             var rp = rascal.picture,
-                fw = $('#' + rp.container).width(),
-                fh = $('#' + rp.container).height(),
-                img = $('#' + rp.container + ' > img'),
+                fw = $('#' + rp.containerID).width(),
+                fh = $('#' + rp.containerID).height(),
+                img = $('#' + rp.containerID + ' > img'),
                 gap = rp.gap,
                 nw = rp.naturalWidth,
                 nh = rp.naturalHeight,
@@ -360,7 +402,7 @@ var rascal = {
             "use strict";
             var rp = rascal.picture;
             rp.showing = false;
-            $('#' + rp.container).children().remove();
+            $('#' + rp.containerID).children().remove();
         }
     }
 };

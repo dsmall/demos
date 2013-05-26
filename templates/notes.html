@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<!-- 19 May 2013 dsmall bootstrap jquery rascal-1.04.js codemirror -->
+<html lang="en">
+<head>
+    <title>Rascal Notes</title>
+    {% include "include/rascal-head.html" %}
+    <link rel="stylesheet" type="text/css" href="{{ editor }}static/codemirror/lib/codemirror.css">
+    <script src="{{ editor }}static/codemirror/lib/codemirror.js"></script>
+    <script src="{{ editor }}static/codemirror/mode/markdown/markdown.js"></script>
+    <script src="/static/js/rascal-1.04.js"></script>
+    <style>
+        .well.rascal {
+            padding: 5px;
+            color: #eee;
+            background-color: #444;
+        }
+
+        /* Container for file list with DND indicator */
+        .list {
+            border: 2px solid #555;
+            -moz-border-radius: 5px;
+            -webkit-border-radius: 5px;
+            border-radius: 5px;
+            padding: 5px 10px 20px;
+            /* padding 0 10px 0 0; */
+            margin: 10px 0;
+            height: 440px;
+            color: #333;
+            background-color: lightyellow;
+            overflow: auto;
+        }
+        .list.dragover {
+            border: 2px solid #3875d7;
+            box-shadow: 0 0 12px #6666DD;
+        }
+
+        /* Files shown in an unnumbered list */
+        ul.files {
+            padding: 5px 0 5px 0;
+            margin: 0px;
+        }
+        /* Clicking a file highlights its LI element */
+        ul.files > li {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+        ul.files > li.clicked {
+            background-color: #eeeeee;
+        }
+        /* Clickable A elements */
+        ul.files a {
+            color: #a11;
+            text-decoration: none;
+            display: block;
+            padding: 0 0 0 2px;
+        }
+        /* Selected when mouseover */
+        ul.files a.selected {
+            background-color: #ebf2fc;
+        }
+
+        /* Simple picture frame with optional status element */
+        .CodeMirror {
+            font-size: 13px;
+            line-height: 1.3em;
+            /* border: 6px solid #444; */
+            /* border-radius: 4px; */
+            height: 475px;
+            background-color: lightyellow;
+            font-family: Monaco, Menlo, Consolas, monospace;
+        }
+        
+        .CodeMirror pre {
+            border-bottom: thin solid #e5e5e5;
+        }
+
+        .frame {
+            background-color: #828282;
+        }
+        .status {
+            color: #fff;
+            padding: 10px 20px;
+        }
+
+        /* Styles for progress bar */
+        .progress-save {
+            margin-top: 5px; 
+        }
+        .progress.rascal {
+            height: 10px;
+            margin-bottom: 8px;
+        }
+        /* http://stackoverflow.com/questions/9622043 */
+        .progress.rascal .bar {
+            -webkit-transition: none;
+            -moz-transition: none;
+            -ms-transition: none;
+            -o-transition: none;
+            transition: none;
+        }
+        img.led {
+            /* float: right; */
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body>
+    {% include "include/rascal-topbar.html" %}
+    <div class="container-fluid" style="margin-left: 24px;">
+        <div class="row-fluid">
+            <div class="span3">
+                <div id="filelist-well" class="well rascal">
+                    <small>Drag notes here</small>
+                    <div style="float:right">
+                        <img id="LED" src="static/images/led.gif" width="10" class="led" />
+                    </div>
+                    <div id="filelist" class="list"></div>
+                    <div class="progress-save">
+                        <div id="save-progress" class="progress progress-danger rascal">
+                            <div id="save-bar" class="bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <input id="add-note" type="button" value="+" class="btn btn-inverse rascal" />
+                        <input id="open-note" type="button" value="View" class="btn btn-inverse" style="float: right;" />
+                    </div>
+               </div><!--/.well -->
+            </div>
+            <div class="span9">
+                <div class="well rascal">
+                    <textarea id="code" cols="100" rows="120" name="text"></textarea>
+                </div><!--/.well -->
+            </div>
+        </div> <!-- /row -->
+    </div> <!-- /container -->
+    {% include "include/doc-tab.html" %} 
+
+    <script type="text/javascript">
+         /*global $, window, document, console, setTimeout, clearTimeout, CodeMirror, rascal */
+        var ADJUSTSIZE = true;
+        var XH = 210;   // Make this large enough to stop the resized window scrolling
+        var editor;
+        var fname = '';
+        var bTrackChanges = false;
+        var isBusy = false;
+
+        // SUPPORT FOR EDITOR
+        function initEditor() {
+            "use strict";
+            editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                mode: 'markdown',
+                theme: 'default',
+                tabSize: 4,
+                indentUnit: 4,
+                indentWithTabs: false,
+                lineWrapping: true,
+                readOnly: 'nocursor'
+            });
+            editor.on('change', fileChanged);
+        }
+
+        function setBusy(state) {
+            "use strict";
+            isBusy = state;
+            if (state) {
+                $('#LED')
+                    .stop(true)
+                    .animate( { opacity: 1.0}, 'fast');
+            } else {
+                $('#LED')
+                    .stop(true)
+                    .animate( { opacity: 0.4 }, 'fast');
+            }
+        }
+        
+        function openNote(file) {
+            "use strict";
+            var apath = rascal.directory.directory.split('templates/').pop() + file;
+            window.open(apath, '_blank');
+        }
+        
+        function loadNote(file) {
+            "use strict";
+            var d = rascal.directory.directory,
+                f = file;
+            if (!isBusy) {
+                $.post('/note_read', { fdir: d, fname: f }, function (response) {
+                    console.log('Loading ' + f + ' (' + response.length + ')');
+                    bTrackChanges = false;
+                    fname = f;
+                    editor.setOption('readOnly', false);
+                    editor.setValue(response);
+                    bTrackChanges = true;
+                });
+            }
+        }
+        
+        function saveNote() {
+            "use strict";
+            var d = rascal.directory.directory,
+                f = fname,
+                s = editor.getValue();
+            $.post('/note_write', { fdir: d, fname: f, text: s }, function (aname) {
+                if (aname !== fname) {
+                    console.log('Saved ' + fname + ' as ' + aname + ' (' + s.length + ')');
+                    fname = aname;
+                    rascal.directory.listDirectory();
+                } else {
+                    console.log('Saved ' + aname + ' (' + s.length + ')');
+                }
+                setBusy(false);
+            }).error(function (jqXHR, textStatus, errorThrown) {
+                console.log('saveNote: ' + textStatus + ': ' + errorThrown);
+                setBusy(false);
+            });                 
+        }
+
+        function fileChanged() {
+            "use strict";
+            if (bTrackChanges) {
+                setBusy(true);
+                delay(function () {
+                    saveNote();
+                }, 1000);
+            }
+        }
+
+        function addNote(status) {
+            "use strict";
+            $('li.file').removeClass('clicked');
+            bTrackChanges = false;
+            fname = '';
+            editor.setValue('');
+            if (status) {
+                bTrackChanges = true;
+                editor.setOption('readOnly', false);
+                editor.focus();
+            }
+        }
+        
+        $('#add-note').click(function () {
+            "use strict";
+            if (!isBusy) {
+                addNote(true);
+             }
+        });
+
+        $('#open-note').click(function () {
+            "use strict";
+            if (!isBusy && (fname !== '')) {
+                openNote(fname);
+             }
+        });
+
+        /* SUPPORT FOR DND UPLOAD */
+        // Updates the progress bar
+        function uploadProgress(pc) {
+            "use strict";
+            $('#save-bar').css('width', pc + '%');
+        }
+        
+        // Assumes element id="status" and appends messages
+        function uploadStatus(msg) {
+            "use strict";
+            editor.setValue(editor.getValue() + msg + '\n');
+        }
+        
+        // On completion, remove progress bar stripes and list directory
+        function uploadComplete() {
+            "use strict";
+            $('#save-progress')
+                .removeClass('active')
+                .removeClass('progress-striped');
+            rascal.directory.listDirectory();
+        }
+        
+        // Glue that enables rascal.dnd to upload files
+        // Sets file types that can be uploaded
+        // Connects progress, status and completion functions
+        function uploadItems(files, dst) {
+            "use strict";
+            var ru;
+            if (!isBusy) {
+                // set up allowed types, progress, status and complete
+                ru = rascal.upload;
+                ru.allowedTypes = [ 'application/markdown' ];
+                ru.allowedExtensions = [ 'md' ];
+                ru.progress = uploadProgress;
+                ru.status = uploadStatus;
+                ru.complete = uploadComplete;
+                // prepare progress bar
+                $('#save-bar').css('width', '0%');
+                $('#save-progress')
+                    .addClass('progress-striped')
+                    .addClass('active');
+                // Create empty status area
+                addNote(false);
+                // start uploading the dropped files
+                ru.filesDropped(files, dst);
+            }
+        }
+        
+        /* FILE LIST MANAGEMENT */
+        // Transform a filename into a list element with a link
+        function list_transform(filename) {
+            var displayname = (filename.replace(/_/g, ' ')).replace('.md', '');
+            return '<li class="file"><a href="#" rel="' + filename + '">' + displayname + '</a></li>';
+        }
+
+        // When list is complete
+        function list_complete() {
+            // Highlight the current file name after saving if it has changed
+            $('#filelist a[rel="' + fname + '"]').parent().addClass('clicked');
+        }
+
+        /* SUPPORT FOR RESIZING */
+        // Call adjustGeometry when resize events stop for 0.5s
+        var delay = (function () {
+            "use strict";
+            var timer = 0;
+            return function (callback, ms) {
+                clearTimeout(timer);
+                timer = setTimeout(callback, ms);
+            };
+        })();
+
+        // Only the height needs to be adjusted (bootstrap fluid styles adjust the width)
+        function adjustGeometry() {
+            "use strict";
+            var h, dh;
+            if (ADJUSTSIZE) {
+                h = $(window).height();
+                dh = (h > (440 + XH)) ? h - (440 + XH) : 0;
+                $('#filelist').height(440 + dh);
+                $('.CodeMirror').height($('#filelist-well').height());
+            }
+        }
+
+        /* INITIALISE THE RASCAL LIBRARIES AFTER EVERYTHING IS LOADED */
+        $(document).ready(function () {
+            "use strict";
+            
+            // Set up geometry - make top bar fluid
+            $('div.navbar-inner > div.container')
+                .removeClass('container')
+                .addClass('container-fluid');
+
+            // Initialise the editor
+            initEditor();
+            
+            // Make editor height the same as filelist
+            $('.CodeMirror').height($('#filelist-well').height());
+            adjustGeometry();
+
+            // Initialise rascal.dnd 
+            rascal.dnd.containerID = 'filelist';
+            rascal.dnd.root = 'templates/notes/';
+            rascal.dnd.filesDropped = uploadItems;
+            rascal.dnd.init();
+
+           // Initialise rascal.directory
+            rascal.directory.directory = 'templates/notes/';
+            rascal.directory.listID = 'filelist';
+            rascal.directory.prefix = '<ul class="files">';
+            rascal.directory.transform = list_transform;
+            rascal.directory.delimiter = '';
+            rascal.directory.suffix = '</ul>';
+            rascal.directory.complete = list_complete;
+            
+            // Add a delegated event to highlight file names as the mouse passes over them
+            $('#filelist').on('mouseenter mouseleave', 'li.file', function (event) {
+                event.preventDefault();
+                if (event.type === 'mouseenter') {
+                    $(this).children('a').addClass('selected');
+                } else {
+                    $(this).children('a').removeClass('selected');
+                }
+            });
+            
+            // Add a delegated event to show note when file name is clicked
+            $('#filelist').on('click', 'li.file > a', function(event) {
+                event.preventDefault();
+                if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    openNote($(this).attr('rel'));
+                } else {
+                    // Remove any previous highlighting
+                    $('li.file').removeClass('clicked');
+                    // Highlight clicked filename
+                    $(this).parent().addClass('clicked');
+                    loadNote($(this).attr('rel'));
+                }
+            });
+
+            // Load file names from the notes folder
+            rascal.directory.listDirectory();
+            
+            // Connect resize to adjustGeometry
+            $(window).resize(function () {
+                delay(function () {
+                    adjustGeometry();
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

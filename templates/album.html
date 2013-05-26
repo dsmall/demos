@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<!-- 24 Feb 2012, 12 May 2012, 18 Jun 2012 dsmall -->
-<!-- Requires: bootstrap, jquery, rascal-1.03, album.css, album.js, static/pictures folder, server.py support -->
-<!-- JSLint 6 Oct 2012 jQuery $ rascal uploadItems loadPictures -->
+<!-- 24 Feb 2012, 12 May 2012, 18 Jun 2012, 16 Apr 2013 dsmall -->
+<!-- Requires: bootstrap, jquery, rascal-1.04, album.css, album.js, static/pictures folder, server.py support -->
 
 <html lang="en">
 <head>
     <title>Rascal Album</title>
     {% include "include/rascal-head.html" %}
     <link rel="stylesheet" type="text/css" href="static/css/demo-album.css">
-    <script src="static/js/rascal-1.03.js"></script>
+    <script src="static/js/rascal-1.04.js"></script>
 </head>
 <body>
     {% include "include/rascal-topbar.html" %}
@@ -36,11 +35,12 @@
     <script type="text/javascript">
         /* Initialise Rascal library */
         /* uploadItems and loadPictures are defined in demo-album.js */
+        /*global rascal, uploadItems, loadPictures*/
         $(document).ready(function () {
             "use strict";
             // Initialise rascal-demo upload
             var rd = rascal.dnd;
-            rd.container = 'frame';
+            rd.containerID = 'frame';
             rd.root = 'static/pictures/';
             rd.filesDropped = uploadItems;
             rd.init();

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 18 May 2013 dsmall -->
 <html lang="en">
 <head>
     <title>Datalogger demo</title>
@@ -48,12 +49,14 @@
                         <button value="pastweek" class="btn btn-default rascal" style="width: 120px;">Past Week</button>
                         <button value="pastyear" class="btn btn-default rascal" style="width: 120px;">Past Year</button>
                     </div>
-                    <img id="LED" src="static/images/led.gif" width="10" class="led" />
-                    <small id="status" class="status"></small>
+                    <div>
+                        <img id="LED" src="static/images/led.gif" width="10" class="led" />
+                        <small id="status" class="status"></small>
+                    </div>
                 </div>
                 <div class="span4">
-                    <div class="btn-group">
-                        <button id="capture" value="capture" class="btn btn-default rascal" style="float: right;">Capture Image</button>
+                    <div class="btn-group" style="float: right;">
+                        <button id="capture" value="capture" class="btn btn-default rascal">Capture Image</button>
                     </div>
                 </div>
             </div> <!-- /row-fluid -->
@@ -83,8 +86,8 @@
                     tickOptions: {formatString: '%a%n%H:%M'}
                 },
                 yaxis: {
-                    min: 13.0,
-                    max: 21.0
+                    // min: 13.0,
+                    // max: 21.0
                     // tickOptions: {formatString: '%0.2f'}
                 }
             },
@@ -173,16 +176,18 @@
             }
         });
 
+        // Delegated event to close captured image
+        $('#captured-image').on('click', '.close', function (e) {
+            $(this).parent().fadeTo(350, 0, function () {
+                $(this).hide();
+            });
+        });
+
         $(document).ready(function () {
             "use strict";
-            period = 'live'
+            period = 'live';
             updateGraph();
             int_timer = setInterval(updateGraph, interval[period]);
-            $('.alert .close').live("click", function(e) {
-                $(this).parent().fadeTo(350, 0, function () {
-                    $(this).hide();
-                });
-            });
         });
     </script>
 </body>
