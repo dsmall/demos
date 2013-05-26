@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import os, time
 
-# Support multiple environments 
+""" Support multiple environments """ 
 (RASCAL, MAC, WINDOWS) = (range(0, 3))
 
 ### Define environment here
@@ -19,12 +19,12 @@ else:
     import pytronics
     ROOT = '/var/www/public/'
     EDITOR = '/editor/'
-# End environment definitions
+""" End environment definitions """
 
 public = Flask(__name__)
 public.config['PROPAGATE_EXCEPTIONS'] = True
 
-# Include "no-cache" header in all POST responses
+""" Include "no-cache" header in all POST responses """
 @public.after_request
 def add_no_cache(response):
     if request.method == 'POST':
@@ -45,7 +45,7 @@ if env == RASCAL:
 #     import joystick
 #     public.register_blueprint(joystick.public)
 
-""" dsmall stuff """
+""" dsmall demos """
 import lib_smtp
 public.register_blueprint(lib_smtp.public)
 
@@ -60,8 +60,9 @@ if env == RASCAL:
     public.register_blueprint(lib_i2c_lcd.public)
     import lib_i2c_rtc
     public.register_blueprint(lib_i2c_rtc.public)
-    import lib_12c_dimmer
-    public.register_blueprint(lib_12c_dimmer.public)
+    import lib_i2c_dimmer
+    public.register_blueprint(lib_i2c_dimmer.public)
+""" end dsmall demos """
 
 """ Background task to write uptime and temperature to LCD """
 if env == RASCAL:
@@ -78,12 +79,7 @@ if env == RASCAL:
         writeString('Temp {0:0.1f}'.format(ftemp))
         writeString(chr(0xdf) + 'C')
 
-# config for upload
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif', 'md'])
-ALLOWED_DIRECTORIES = set(['static/uploads/', 'static/pictures/', 'templates/notes/'])
-# public.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
-
-### Home page ###
+""" Home page """
 @public.route('/')
 @public.route('/index.html')
 def default_page():
@@ -129,7 +125,7 @@ def uptime():
                 td.seconds//(60*60), (td.seconds%(60*60))//60, td.seconds%60)
     return ''
 
-### Generic HTML and Markdown templates, support for doc tab ###
+""" Generic HTML and Markdown templates, support for doc tab """
 @public.route('/<template_name>.html')
 def template(template_name):
     return render_template(template_name + '.html', magic="Hey presto!")
@@ -171,8 +167,11 @@ def get_markdown():
                 return markdown2.markdown(mdf.read(), use_file_vars=True)
     return 'Not Found', 404
 
-### Support for rascal javascript library ###
-# They are called from rascal-1.03.js and used by upload-cf.html, upload-dd.html and album.html
+""" Support for rascal object library 26 May 2013 """
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif', 'md'])
+ALLOWED_DIRECTORIES = set(['static/uploads/', 'static/pictures/', 'templates/notes/'])
+# public.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -252,9 +251,9 @@ def clear_directory():
     except Exception, e:
         print '## clear_directory ## {0}'.format(e)
     return 'Bad request', 400
-### End of upload procedures ###
+""" End of rascal object procedures """
 
-### Specific demos ###
+""" Specific demos """
 # analog-graph
 @public.route('/analog', methods=['POST'])
 def analog():
@@ -338,38 +337,9 @@ def set_color():
     pds[0].hsv = hsv
     pds.go()
     return ('color sent to Color Kinetics box')
+""" End of specific demo procedures """
 
-### End of specific demo procedures
-
-### The following procedures support sending email via SMTP ###
-# They are used by email.html. Configure smtp settings in smtp_lib.py
-# @public.route('/')
-# @public.route('/email.html')
-# def email_form():
-#     import smtp_lib
-#     return render_template('email.html', sender=smtp_lib.sender(), help=smtp_lib.help())
-# 
-# @public.route('/send-email', methods=['POST'])
-# def send_email():
-#     import smtp_lib, json
-#     sender = request.form['sender'].strip()
-#     recipients = request.form['recipients'].strip()
-#     subject = request.form['subject'].strip()
-#     body = request.form['body'].strip()
-#     if sender == '':
-#         result = (1, 'Please enter the sender')
-#     elif recipients == '':
-#         result = (1, 'Please enter at least one recipient')
-#     else:
-#         result = smtp_lib.sendmail(sender, recipients, subject, body)
-#     data = {
-#         "status" : int(result[0]),
-#         "message" : result[1]
-#     }
-#     return json.dumps(data)
-### End of email procedures
-
-# datalogger stuff
+""" datalogger support """
 @rbtimer(30)
 def log_value(num):
     import datalogger
@@ -397,19 +367,9 @@ def getlog():
     except KeyError:
         period = 'live'
     return datalogger.getlog(period)
+""" end of datalogger support """
 
 """ dsmall stuff """
-# Called from hello.html
-@public.route('/flash_led', methods=['POST'])
-def flash_led():
-    if pytronics.digitalRead('LED'):
-        pytronics.digitalWrite('LED', 'LOW')
-        message = "LED off"
-    else:
-        pytronics.digitalWrite('LED', 'HIGH')
-        message = "LED on"
-    return (message)
-
 # Reload editor button
 @public.route('/reload', methods=['POST'])
 def reload():
@@ -418,7 +378,6 @@ def reload():
     if res <> 0:
         return 'Bad request', 400
     return 'OK', 200
-
 
 if __name__ == "__main__":
     public.run(host='127.0.0.1:5000', debug=True)
