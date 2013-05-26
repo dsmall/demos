@@ -29,6 +29,8 @@ def set_rtc ():
         i2cWrite(0x68, 0, rtc, 'I')
         # Reset OSF (oscillator stopped flag)
         i2cWrite(0x68, 0x09, 0, 'B')
+        subp = subprocess.Popen([ 'date'], stdout=subprocess.PIPE)
+        print '## set_rtc ## ' + subp.communicate()[0].strip()
     except Exception, e:
         print '## set_rtc ## Unexpected error: %s' % str(e)
 
@@ -37,8 +39,9 @@ def set_rascal ():
     import subprocess
     try:
         ar = i2cRead(0x68, 0, 'I', 7)
-        cmd = 'date 20{0:02x}.{1:02x}.{2:02x}-{3:02x}:{4:02x}:{5:02x}'.format(ar[6], ar[5], ar[4], ar[2], ar[1], ar[0])
-        subp = subprocess.check_call(cmd, shell=True)
+        args = '20{0:02x}.{1:02x}.{2:02x}-{3:02x}:{4:02x}:{5:02x}'.format(ar[6], ar[5], ar[4], ar[2], ar[1], ar[0])
+        subp = subprocess.Popen([ 'date', args], stdout=subprocess.PIPE)
+        print '## set_rascal ## ' + subp.communicate()[0].strip()
     except Exception, e:
         print '## set_rascal ## Unexpected error: %s' % str(e)
 

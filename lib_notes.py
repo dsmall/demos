@@ -2,7 +2,11 @@ from flask import Blueprint, render_template, request
 public = Blueprint('lib_notes', __name__, template_folder='templates')
 
 from werkzeug import secure_filename
-from server import ROOT
+from server import ROOT, EDITOR
+
+@public.route('/notes.html')
+def notes():
+    return render_template('/notes.html', editor=EDITOR)
 
 @public.route('/note_read',  methods=['POST'])
 def note_read():
