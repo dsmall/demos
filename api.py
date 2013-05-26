@@ -22,7 +22,7 @@ def digital_read(pin_name):
     if pin_name not in DIGITAL_PINS:
         return DIGITAL_PIN_NAME_ERROR.format(pin_name)
     else:
-        return pytronics.digitalRead(pin_name)
+        return str(pytronics.digitalRead(pin_name))
 
 @public.route('/digital/write/<pin_name>', methods=['GET', 'POST'])
 def digital_write(pin_name):
@@ -42,7 +42,7 @@ def digital_write(pin_name):
 @public.route('/digital/toggle/<pin_name>', methods=['GET', 'POST'])
 def digital_toggle(pin_name):
     if pin_name in DIGITAL_PINS:
-        if pytronics.digitalRead(pin_name) == '1':
+        if str(pytronics.digitalRead(pin_name)) == '1':
             pytronics.digitalWrite(pin_name, 'LOW')
             return 'Set pin {0} to LOW'.format(pin_name)
         else:
@@ -53,17 +53,28 @@ def digital_toggle(pin_name):
 
 @public.route('/digital/write/<pin_name>/<state>')
 def digital_write_shortcut(pin_name, state):
-    if pin_name in DIGITAL_PINS:
-        if state.upper() in ['1', 'ON', 'HIGH']:
-            pytronics.digitalWrite(pin_name, 'HIGH')
-            return 'Set pin {0} to HIGH'.format(pin_name)
-        elif state.upper() in ['0', 'OFF', 'LOW']:                       
-            pytronics.digitalWrite(pin_name, 'LOW')
-            return 'Set pin {0} to LOW'.format(pin_name)
+    try:
+        if pin_name in DIGITAL_PINS:
+            data = state.upper()
+            if data in ['1', 'ON', 'HIGH']:
+                pytronics.digitalWrite(pin_name, 'HIGH')
+                return 'Set pin {0} to HIGH'.format(pin_name)
+            elif data in ['0', 'OFF', 'LOW']:                       
+                pytronics.digitalWrite(pin_name, 'LOW')
+                return 'Set pin {0} to LOW'.format(pin_name)
+            elif data in ['IN', 'INPUT']:                       
+                pytronics.pinMode(pin_name,'INPUT')
+                return 'Set pin {0} to INPUT'.format(pin_name)
+            elif data in ['OUT', 'OUTPUT']:                       
+                pytronics.pinMode(pin_name,'OUTPUT')
+                return 'Set pin {0} to OUTPUT'.format(pin_name)
+            else:
+                return DIGITAL_PIN_STATE_ERROR.format(pin_name, data)
         else:
-            return DIGITAL_PIN_STATE_ERROR.format(pin_name, data)
-    else:
-        return DIGITAL_PIN_NAME_ERROR.format(pin_name)
+            return DIGITAL_PIN_NAME_ERROR.format(pin_name)
+    except Exception, e:
+        print '## digital_write_shortcut ## Unexpected error: %s' % str(e)
+        return 'Bad request', 400
 
 @public.route('/read-pins', methods=['POST'])
 def read_pins():

@@ -2,7 +2,7 @@
     I2C RTC Library
     ~~~~~~~~~~~~~~~
     Support for JeeLabs i2c RTC Plug with DS1340
-    dsmall 31 July 2012, 10 May 2013
+    dsmall 31 July 2012, 25 May 2013
 """
 from flask import Blueprint, render_template, request
 public = Blueprint('lib_i2c_rtc', __name__, template_folder='templates')
@@ -32,6 +32,16 @@ def set_rtc ():
     except Exception, e:
         print '## set_rtc ## Unexpected error: %s' % str(e)
 
+def set_rascal ():
+    from pytronics import i2cRead
+    import subprocess
+    try:
+        ar = i2cRead(0x68, 0, 'I', 7)
+        cmd = 'date 20{0:02x}.{1:02x}.{2:02x}-{3:02x}:{4:02x}:{5:02x}'.format(ar[6], ar[5], ar[4], ar[2], ar[1], ar[0])
+        subp = subprocess.check_call(cmd, shell=True)
+    except Exception, e:
+        print '## set_rascal ## Unexpected error: %s' % str(e)
+
 @public.route('/rtc', methods=['POST'])
 def rtc():
     from pytronics import i2cRead, i2cWrite
@@ -40,6 +50,8 @@ def rtc():
         command = request.form['command']
         if command == 'set_rtc':
             set_rtc()
+        elif command == 'set_rascal':
+            set_rascal()
         elif command == 'start':
             i2cWrite(0x68, 0, i2cRead(0x68, 0) & 0x7f)
         elif command == 'stop':

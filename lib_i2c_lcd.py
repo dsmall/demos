@@ -135,5 +135,10 @@ def send_to_i2c_lcd():
 @public.route('/clear-i2c-lcd', methods=['POST'])
 def clear_i2c_lcd():
     # from i2c_lcd import reset
-    reset()
+    if 'command' in request.form:
+        command = request.form['command']
+        if command == 'init':
+            init()
+    else:
+        reset()
     return 'OK', 200

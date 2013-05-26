@@ -5,6 +5,7 @@
     width: 350px;
     /* left = width + 2 * padding (2 * 19) + 2 * border (2 * 1) = width + 40 */
     left: -390px;
+    z-index: 100;
 }
 
 .doc-panel a.doc-tab {

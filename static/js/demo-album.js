@@ -1,6 +1,6 @@
 /* 27 Jun 2012 dsmall for rascal-1.03 (trap error when no folder) */
-// JSLint 6 Oct 2012 jQuery $ rascal {}
 // 16 Apr 2013 dsmall updated for rascal-1.04
+// Inspired by http://jonraasch.com/blog/a-simple-jquery-slideshow
 
 /*global $, console, rascal, clearInterval, setInterval */
 

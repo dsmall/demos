@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- JSLint 6 Oct 2012 jQuery $ -->
+<!-- dsmall 6 July 2012, 18 May 2013 -->
 <html>
 <head>
     <title>JeeLabs LCD Plug demo</title>
@@ -40,13 +40,14 @@
         </div>
     </div>
     <script language="javascript" type="text/javascript">
+        /*global $ */
         $('#send-to-lcd').click(function () {
             "use strict";
             $.post('/send-to-i2c-lcd', { line1: $('#line1').val(), line2: $('#line2').val() });
         });
         $('#clear-lcd').click(function () {
             "use strict";
-            $.post('/clear-i2c-lcd');
+            $.post('/clear-i2c-lcd', { command: 'init' });
             $('#line1').val('');
             $('#line2').val('');
         });

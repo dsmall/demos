@@ -51,7 +51,8 @@ The next example in this series is [Upload Pictures][upload-pics].
 
 More information about _rascal.js_ can be found [here][rascal_object].
 
+<small>dsmall 12 May 2013</small>
+
 [upload-cf]: /upload-cf.html
 [upload-pics]: /upload-pics.html
-[rascal_object]: /docs/about-docs.md
-<!-- dsmall 12 May 2013 -->
+[rascal_object]: /docs/Rascal_Object.md

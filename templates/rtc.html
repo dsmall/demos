@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- JSLint 7 Oct 2012 jQuery $ tolerate bitwise  -->
+<!-- dsmall 31 July 2012, 25 May 2013 -->
 <html lang="en">
 <head>
     <title>RTC DS1340</title>
@@ -21,6 +21,11 @@
             width: 570px;
         }
     </style>
+    <style>
+        .doc-panel {
+            width: 500px;
+        }
+    </style>
 </head>
 <body>
     {% include "include/rascal-topbar.html" %}
@@ -38,11 +43,11 @@
             </div>
             
             <div class="row">
-                <div class="span5">
-                    <button id="set_rtc" class="btn btn-large btn-danger rascal">Set time</button>
-                    <!-- <input type="color" value="#3464c6" /> -->
+                <div class="span7">
+                    <button id="set_rtc" class="btn btn-large btn-danger rascal">Set Rascal and RTC from Internet</button>
+                    <button id="set_rascal" class="btn btn-large btn-warning rascal">Set Rascal from RTC</button>
                 </div>
-                <div class="span5">
+                <div class="span3">
                     <span style="float: right;">
                         <button id="start" class="btn btn-large btn-success disabled rascal">Start</button>
                         <button id="reset" class="btn btn-large btn-default rascal">Reset</button>
@@ -91,6 +96,9 @@
                     int_timer = setInterval(read_rtc, 1000);
                 }
             });
+            /* $.post('/datetime', { format: '%Y-%m-%d %H:%M:%S' }, function (response) {
+                console.log(response);
+            }); */
         }
 
         function send_command(cmd) {
@@ -99,7 +107,7 @@
             int_timer = clearInterval(int_timer);
             $.post('/rtc', { command: cmd }, function (response) {
                 display_time(JSON.parse(response));
-                if (cmd === 'set_rtc' || cmd === 'start') {
+                if (cmd === 'set_rtc' || cmd === 'set_rascal' || cmd === 'start') {
                     firstTime = true;
                     int_timer = setInterval(read_rtc, 1200);
                 }
@@ -116,6 +124,22 @@
                 .removeClass('btn-warning')
                 .addClass('btn-success')
                 .text('Start');
+            $('#set_rascal')
+                .removeClass('disabled');
+
+        });
+
+        $('#set_rascal').click(function () {
+            "use strict";
+            if (!$('#set_rascal').hasClass('disabled')) {
+                showDate = true;
+                send_command('set_rascal');
+                $('#start')
+                    .addClass('disabled')
+                    .removeClass('btn-warning')
+                    .addClass('btn-success')
+                    .text('Start');
+            }
         });
 
         $('#start').click(function () {
@@ -147,6 +171,8 @@
                 .removeClass('btn-warning')
                 .addClass('btn-success')
                 .text('Start');
+            $('#set_rascal')
+                .addClass('disabled');
         });
 
         $(document).ready(function () {

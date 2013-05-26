@@ -52,6 +52,9 @@ public.register_blueprint(lib_smtp.public)
 import lib_news
 public.register_blueprint(lib_news.public)
 
+import lib_notes
+public.register_blueprint(lib_notes.public)
+
 if env == RASCAL:
     import lib_i2c_lcd
     public.register_blueprint(lib_i2c_lcd.public)
@@ -76,8 +79,8 @@ if env == RASCAL:
         writeString(chr(0xdf) + 'C')
 
 # config for upload
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
-ALLOWED_DIRECTORIES = set(['static/uploads/', 'static/pictures/'])
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif', 'md'])
+ALLOWED_DIRECTORIES = set(['static/uploads/', 'static/pictures/', 'templates/notes/'])
 # public.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
 
 ### Home page ###
@@ -139,6 +142,10 @@ def document(doc_name):
 def document_docs(doc_name):
     return render_markdown('docs/', doc_name)
 
+@public.route('/notes/<doc_name>.md')
+def document_notes(doc_name):
+    return render_markdown('notes/', doc_name)
+
 # Render a markdown template within documentation.html
 def render_markdown(path, doc_name):
     import markdown2
@@ -184,6 +191,8 @@ def xupload_file():
             filename = secure_filename(request.headers['X-File-Name'])
             if not allowed_file(filename):
                 print '## xupload ## bad file type ' + filename
+                # read into bitbucket to avoid timeout
+                _ = request.stream.read()
                 return 'Forbidden', 403
             try:
                 folder = request.headers['X-Folder']
@@ -191,6 +200,8 @@ def xupload_file():
                 folder = ''
             if not allowed_folder(folder):
                 print '## xupload ## bad folder ' + folder
+                # read into bitbucket to avoid timeout
+                _ = request.stream.read()
                 return 'Forbidden', 403
             fpath = os.path.join(ROOT, os.path.join(folder, filename))
             # Write out the stream
@@ -207,9 +218,11 @@ def xupload_file():
 @public.route('/list-directory', methods=['POST'])
 def list_directory():
     import os, json
-    dir = request.form['directory']
+    dir = os.path.join(ROOT, request.form['directory'])
     try:
-        dirlist = sorted(os.listdir(os.path.join(ROOT, dir)), key=unicode.lower)
+        # dirlist = sorted(os.listdir(dir), key=unicode.lower)
+        dirlist = [ name for name in sorted(os.listdir(dir), key=unicode.lower) \
+                   if not os.path.isdir(os.path.join(dir, name)) ]
         return json.JSONEncoder().encode(dirlist)
     except OSError:
         return 'Not Found', 404
@@ -385,7 +398,18 @@ def getlog():
         period = 'live'
     return datalogger.getlog(period)
 
-# dsmall stuff
+""" dsmall stuff """
+# Called from hello.html
+@public.route('/flash_led', methods=['POST'])
+def flash_led():
+    if pytronics.digitalRead('LED'):
+        pytronics.digitalWrite('LED', 'LOW')
+        message = "LED off"
+    else:
+        pytronics.digitalWrite('LED', 'HIGH')
+        message = "LED on"
+    return (message)
+
 # Reload editor button
 @public.route('/reload', methods=['POST'])
 def reload():

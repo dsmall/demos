@@ -127,10 +127,12 @@ var rascal = {
         directory: 'static/uploads/',
         allowAll: false,
         allowedTypes: [ 'image/' ],
+        allowedExtensions: [],
         maxFileBytes: 1024 * 1024,
         timeout: 40,
         totalBytes: 0,
         loadedBytes: 0,
+        savedFiles: 0,
         files: [],
         nextFile: -1,
         int_inFlight: undefined,
@@ -144,6 +146,10 @@ var rascal = {
         status: function (msg) {
             "use strict";
             console.log('rascal.upload: ' + msg);
+        },
+        uploaded: function (file, dst) {
+            "use strict";
+            console.log('rascal.upload: ' + file + ' ' + dst);
         },
         complete: function (directory) {
             "use strict";
@@ -171,7 +177,11 @@ var rascal = {
                             // rascal.upload.status(' - success', 1);
                             rascal.upload.loadedBytes += file.size;
                             // console.log('Upload complete ' + file.name);
+                            rascal.upload.savedFiles += 1;
                             rascal.upload.lastUpload = file.name;
+                            if (typeof rascal.upload.uploaded === 'function') {
+                                rascal.upload.uploaded(file.name, rascal.upload.directory);
+                            }
                         } else if (xhr.status === 0) {
                             rascal.upload.status('Upload of ' + file.name + ' aborted');
                         } else {
@@ -206,6 +216,7 @@ var rascal = {
                 alert("Sorry, XMLHttpRequest upload doesn't seem to be supported by your browser.");
             }
         },
+        // Runs every 500ms until all files have been uploaded
         uploadFiles: function () {
             "use strict";
             var ru = rascal.upload, f;
@@ -233,7 +244,7 @@ var rascal = {
         filesDropped: function (files, dst) {
             "use strict";
             var ru = rascal.upload, i, f;
-            function isAllowed(ft) {
+            function isAllowed(ft, fn) {
                 var j;
                 if (ru.allowAll) {
                     return true;
@@ -243,17 +254,21 @@ var rascal = {
                         return true;
                     }
                 }
+                if ($.inArray(fn.split('.').pop().toLowerCase(), ru.allowedExtensions) !== -1) {
+                    return true;
+                }
                 return false;
             }
             ru.files = [];
             ru.directory = dst;
             ru.totalBytes = 0;
             ru.loadedBytes = 0;
+            ru.savedFiles = 0;
             ru.lastUpload = '';
             for (i = 0; i < files.length; i += 1) {
                 f = files[i];
                 // Validate file type and size
-                if (!isAllowed(f.type)) {
+                if (!isAllowed(f.type, f.name)) {
                     ru.status(f.name + ' (' + f.type + ') isn\'t a file type that can be uploaded');
                 } else if (f.size >= ru.maxFileBytes) {
                     ru.status(f.name + ' (' + f.type + ') is too large (limit is ' +
@@ -278,7 +293,7 @@ var rascal = {
         listID: 'filelist',
         prefix: '',
         transform: undefined,
-        delimiter: '<br />',
+        delimiter: '<br/>',
         suffix: '',
         complete: function () {
             "use strict";

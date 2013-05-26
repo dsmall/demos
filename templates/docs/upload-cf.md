@@ -52,7 +52,8 @@ The next example in this series is [Upload using Drag and Drop][upload-dd].
 
 More information about _rascal.js_ can be found [here][rascal_object].
 
+<small>dsmall 19 April 2013</small>
+
 [upload-dd]: /upload-dd.html
 [upload-pics]: /upload-pics.html
-[rascal_object]: /docs/about-docs.md
-<!-- dsmall 19 April 2013 -->
+[rascal_object]: /docs/Rascal_Object.md

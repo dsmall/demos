@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <!-- 14 Apr 2013 dsmall bootstrap jquery rascal-1.04.js -->
-<!-- JSLint 7 Oct 2012 jQuery $ rascal uploadItems -->
 <html lang="en">
 <head>
     <title>Upload Pictures</title>
@@ -118,7 +117,7 @@
     {% include "include/doc-tab.html" %} 
 
     <script type="text/javascript">
-        
+         /*global $, window, setTimeout, clearTimeout, rascal */
         var ADJUSTSIZE = true;
         var XH = 210;   // Make this large enough to stop the resized window scrolling
 
@@ -244,10 +243,10 @@
            // Initialise rascal.directory
             rascal.directory.directory = 'static/uploads/';
             rascal.directory.listID = 'filelist';
-            rascal.directory.prefix = '<ul class="files">'
+            rascal.directory.prefix = '<ul class="files">';
             rascal.directory.transform = list_transform;
             rascal.directory.delimiter = '';
-            rascal.directory.suffix = '</ul>'
+            rascal.directory.suffix = '</ul>';
             rascal.directory.complete = list_complete;
             
             // Initialise rascal.picture
@@ -256,7 +255,6 @@
 
             // Add a delegated event to highlight file names as the mouse passes over them
             $('#filelist').on('mouseenter mouseleave', 'li.file', function (event) {
-                "use strict";
                 event.preventDefault();
                 if (event.type === 'mouseenter') {
                     $(this).children('a').addClass('selected');

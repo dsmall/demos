@@ -1,0 +1,197 @@
+{
+  "steps": [
+    {
+      "configurations": [],
+      "substitutions": [],
+      "url": "http://www.orbitz.com/hotels/",
+      "description": "ORB Hotel Home Page",
+      "actions": [
+        {
+          "name": "Ad blocker",
+          "filterTargets": [
+            {
+              "urlFragment": "http://a.intentmedia.net/",
+              "matchCriteria": "startsWith"
+            },
+            {
+              "matchCriteria": "startsWith",
+              "urlFragment": "http://c.betrad.com/"
+            },
+            {
+              "urlFragment": "bluecava.com/"
+            },
+            {
+              "urlFragment": "doubleclick.net/"
+            }
+          ],
+          "type": "addObjectExclusionRule"
+        },
+        {
+          "url": "http://www.orbitz.com/hotels/?mvt=off",
+          "targetWindow": "gomez_top[0]",
+          "type": "navigate"
+        },
+        {
+          "criteria": "time",
+          "absoluteMS": 60000,
+          "type": "wait"
+        },
+        {
+          "criteria": "step_match",
+          "match": "page: hotel100",
+          "type": "validate"
+        }
+      ]
+    },
+    {
+      "configurations": [],
+      "substitutions": [],
+      "url": "http://www.orbitz.com/shop/hotelsearch?type=hotel",
+      "description": "ORB Hotel Search Results",
+      "actions": [
+        {
+          "targetWindow": "control",
+          "jsCode": "/* Destinations and dates updated per ESM-1400 */\n\n/* dsmall - javascript array elements are addressed as 0 to length - 1 */\nvar toCodes = new Array(\n    'Las Vegas, NV, United States',\n    'New York, NY, United States',\n    'Orlando, FL, United States',\n    'Chicago, IL, United States',\n    'Los Angeles, CA, United States',\n    'San Francisco, CA, United States',\n    'San Diego, CA, United States',\n    'Fort Lauderdale, FL, United States',\n    'Washington DC, DC, United States',\n    'Boston, MA, United States'\n);\n\n/* dsmall - this returns a value betweeen 0 and length - 1 */\nvar randVal = Math.floor(Math.random() * toCodes.length);\n        \n/* Set global origin-destination pair */\ndestination = toCodes[randVal];\n\n/* Set globals outDate = today + [1-7], backDate = outDate + [1-3] */\ngomezDate.init();\nvar today = gomezDate.today();\nvar outDay = gomezDate.addDays(today, 1 + Math.floor(Math.random() * 7));\nvar inDay = gomezDate.addDays(outDay, 1 + Math.floor(Math.random() * 3));\noutDate = gomezDate.printDate(outDay, '/' , 'MMDDYYYY');\nbackDate = gomezDate.printDate(inDay, '/' , 'MMDDYYYY');\n",
+          "type": "executeJS"
+        },
+        {
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "input[type=\"text\"][name=\"hotel.keyword.key\"]"
+              ]
+            ]
+          },
+          "value": "`destination`",
+          "type": "setInputValue"
+        },
+        {
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "input[type=\"text\"][name=\"hotel.chkin\"]"
+              ]
+            ]
+          },
+          "value": "`outDate`",
+          "type": "setInputValue"
+        },
+        {
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "input[type=\"text\"][name=\"hotel.chkout\"]"
+              ]
+            ]
+          },
+          "value": "`backDate`",
+          "type": "setInputValue"
+        },
+        {
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "input[type=\"submit\"][name=\"search\"]"
+              ]
+            ]
+          },
+          "type": "click"
+        },
+        {
+          "criteria": "time",
+          "absoluteMS": 60000,
+          "timestamp": false,
+          "type": "wait"
+        },
+        {
+          "criteria": "step_match",
+          "match": "page: hotel200",
+          "type": "validate"
+        },
+        {
+          "criteria": "element_match",
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "'a:contains(\"Book\"):eq(0)'"
+              ]
+            ]
+          },
+          "match": "Select",
+          "type": "validate"
+        }
+      ]
+    },
+    {
+      "configurations": [],
+      "substitutions": [],
+      "url": "https://www.orbitz.com/book/bookingpath?execution=e1s1",
+      "description": "ORB Hotel Reprice",
+      "actions": [
+        {
+          "targetWindow": "control",
+          "jsCode": "/* Set global randChoice to 0 to 19 */\nrandChoice = Math.floor(Math.random() * 20);\n",
+          "type": "executeJS"
+        },
+        {
+          "target": {
+            "targetWindow": "gomez_top[0]",
+            "locators": [
+              [
+                "css",
+                "`'a:contains(\"Book\"):eq(' + randChoice + ')'`"
+              ]
+            ]
+          },
+          "type": "click"
+        },
+        {
+          "criteria": "time",
+          "absoluteMS": 60000,
+          "timestamp": false,
+          "type": "wait"
+        },
+        {
+          "criteria": "step_match",
+          "match": "page: ubp300",
+          "type": "validate"
+        },
+        {
+          "criteria": "step_match",
+          "match": "Trip cost",
+          "type": "validate"
+        }
+      ]
+    }
+  ],
+  "configurations": [
+    {
+      "name": "http://www.gomez.com/settings/gsl_version",
+      "value": "2"
+    },
+    {
+      "name": "http://www.gomez.com/settings/browser_version",
+      "value": "IE7"
+    }
+  ],
+  "headers": [],
+  "parameters": [],
+  "mobileConfigurations": [],
+  "name": "Orbitz-Hotel - IE Agent",
+  "enableFlash": true,
+  "enableScoe": true,
+  "ipMode": "IPv6_preferred",
+  "clientCerts": [],
+  "dns": [],
+  "enableForMobile": false
+}
