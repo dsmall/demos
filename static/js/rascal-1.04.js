@@ -1,4 +1,4 @@
-/* Library dsmall 2012-13 v1.04 last update 6 May 2013 */
+/* Library dsmall 2012-13 v1.04 last update 27 May 2013 */
 // NB Event handlers need to be named and static to avoid duplication
 
 /*global $, console, document, XMLHttpRequest, alert, clearInterval, setInterval */
