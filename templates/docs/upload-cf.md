@@ -57,3 +57,10 @@ More information about _rascal.js_ can be found [here][rascal_object].
 [upload-dd]: /upload-dd.html
 [upload-pics]: /upload-pics.html
 [rascal_object]: /docs/Rascal_Object.md
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#doc-content a')
+            .attr('target', '_blank');
+    });
+</script>

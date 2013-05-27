@@ -68,3 +68,10 @@ See the [TMP102 Data Sheet][tids] for more information.
 [tids]: http://www.ti.com/lit/ds/symlink/tmp102.pdf
 [sf]: https://www.sparkfun.com/products/9418
 [i2c]: /test-i2c.html
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#doc-content a')
+            .attr('target', '_blank');
+    });
+</script>

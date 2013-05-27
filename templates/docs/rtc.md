@@ -55,4 +55,3 @@ The Rascal Python library reads the date and time from RTC Plug via the I<sup>2<
             .attr('target', '_blank');
     });
 </script>
-
