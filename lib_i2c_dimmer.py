@@ -25,7 +25,7 @@
 """
 
 from flask import Blueprint, render_template, request
-public = Blueprint('lib_12c_dimmer', __name__, template_folder='templates')
+public = Blueprint('lib_i2c_dimmer', __name__, template_folder='templates')
 
 PCA_INC_NONE = 0
 PCA_INC_ALL = 0x80      # 0x00-0x1B (28)
