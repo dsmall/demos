@@ -2,14 +2,15 @@
 <!-- dsmall 6 July 2012, 18 May 2013 -->
 <html>
 <head>
-    <title>JeeLabs LCD Plug demo</title>
+    <title>JeeLabs I2C LCD</title>
     {% include "include/rascal-head.html" %}
     <style>
         .lcd-frame {
             margin: 10px 0 20px;
             border: 10px solid #333;
             padding: 5px 15px 10px;
-            background-color: #3464c6;
+            /* background-color: #3464c6; */
+            background-color: #225;
             display: inline-block;
         }
         #line1, #line2 {
@@ -18,10 +19,17 @@
             border-style: none;
             font-family: 'VT323', 'Courier', sans-serif;
             font-size: 60px;
-            color: #fff;
-            background-color: #3464c6;
+            /* color: #fff; */
+            color: #444;
+            /* background-color: #3464c6; */
+            background-color: #225;
             width: 405px;
             height: 60px;
+        }
+    </style>
+    <style>
+        .doc-panel {
+            width: 500px;
         }
     </style>
 </head>
@@ -29,7 +37,7 @@
     {% include "include/rascal-topbar.html" %}
     <div class="container">
         <div class="well rascal">
-            <h1>JeeLabs I2C LCD Plug demo</h1>
+            <h1>JeeLabs I2C LCD</h1>
             <p>Enter some text to send to the LCD display</p>
             <span class="well lcd-frame">
                 <input id="line1" type="text" value="Science and" /><br/>
@@ -37,19 +45,65 @@
             </span><br/>
             <input id="send-to-lcd" type="button" value="Send to LCD" class="btn btn-large btn-danger rascal" alt="Send to LCD">
             <input id="clear-lcd" type="button" value="Clear LCD" class="btn btn-large btn-primary rascal" alt="Clear LCD">
+            <input id="init-lcd" type="button" value="Init LCD" class="btn btn-large btn-warning rascal" alt="Init LCD">
+            <input id="backlight" type="button" value="Backlight" class="btn btn-large btn-inverse rascal" alt="Backlight">
         </div>
     </div>
+    {% include "include/doc-tab.html" %}
     <script language="javascript" type="text/javascript">
         /*global $ */
+        var backlight;
+        
+        function setBacklight(state) {
+            backlight = state;
+            if (backlight) {
+                $('.lcd-frame')
+                    .css('background-color', '#3464c6');
+                $('#line1,#line2')
+                    .css('color', '#fff')
+                    .css('background-color', '#3464c6');
+                $('#backlight')
+                    .removeClass('btn-inverse')
+                    .addClass('btn-default')
+            } else {
+                $('.lcd-frame')
+                    .css('background-color', '#225');
+                $('#line1,#line2')
+                    .css('color', '#444')
+                    .css('background-color', '#225');
+                $('#backlight')
+                    .removeClass('btn-default')
+                    .addClass('btn-inverse')
+            }
+        }
+ 
         $('#send-to-lcd').click(function () {
             "use strict";
             $.post('/send-to-i2c-lcd', { line1: $('#line1').val(), line2: $('#line2').val() });
         });
         $('#clear-lcd').click(function () {
             "use strict";
-            $.post('/clear-i2c-lcd', { command: 'init' });
+            $.post('/clear-i2c-lcd');
             $('#line1').val('');
             $('#line2').val('');
+        });
+        $('#init-lcd').click(function () {
+            "use strict";
+            $.post('/init-i2c-lcd');
+            setBacklight(true);
+        });
+        $('#backlight').click(function () {
+            "use strict";
+            $.post('/backlight-i2c-lcd', { state: !backlight }, function (response) {
+                setBacklight(JSON.parse(response));
+            });
+        });
+                
+        $(document).ready(function () {
+            "use strict";
+            $.post('/backlight-i2c-lcd', function (response) {
+                setBacklight(JSON.parse(response));
+            });
         });
     </script>
 </body>

@@ -5,6 +5,7 @@
 The RTC Plug is a small board containing a low power real-time clock with battery backup
 manufactured by [JeeLabs][jl] and also available from [Modern Device][md]. It continues 
 to track the time with second by second resolution while powered off if the optional battery is fitted.
+
 This application can set the date and time on Rascal and RTC from an Internet [NTP][ntp] server
 or, if the Rascal isn't connected to the Internet, can set Rascal date and time from the RTC.
 The application can also use the RTC as a stopwatch.

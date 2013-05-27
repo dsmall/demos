@@ -2,7 +2,7 @@
     I2C LCD Library
     ~~~~~~~~~~~~~~~
     Support for JeeLabs i2c LCD Plug and HD44780 LCD
-    dsmall 6 July 2012, 10 May 2013
+    dsmall 6 July 2012, 27 May 2013
 """
 from flask import Blueprint, render_template, request
 public = Blueprint('lib_i2c_lcd', __name__, template_folder='templates')
@@ -98,11 +98,14 @@ def init():
 
 # Backlight is controlled by toggling MCP23008 P7 IO status
 # Set P7 to output (0 = on) or input (1 = off)
-def backlight(state = True):
+def setBacklight(state = True):
     if state:
         _i2cWrite(LCD, MCP_IODIR, 0, 'B')
     else:
         _i2cWrite(LCD, MCP_IODIR, MCP_BACKLIGHT, 'B')
+
+def getBacklight():
+    return ((_i2cRead(LCD, MCP_IODIR, 'B') & MCP_BACKLIGHT) == 0)
 
 def setCursor(row, col):
     rowstart = [ 0x00, 0x40, 0x14, 0x54 ]
@@ -125,7 +128,6 @@ def writeString(s):
 
 @public.route('/send-to-i2c-lcd', methods=['POST'])
 def send_to_i2c_lcd():
-    # from i2c_lcd import reset, writeString, setCursor
     reset()
     writeString(request.form['line1'])
     setCursor(1, 0)
@@ -134,11 +136,19 @@ def send_to_i2c_lcd():
 
 @public.route('/clear-i2c-lcd', methods=['POST'])
 def clear_i2c_lcd():
-    # from i2c_lcd import reset
-    if 'command' in request.form:
-        command = request.form['command']
-        if command == 'init':
-            init()
-    else:
-        reset()
+    reset()
     return 'OK', 200
+
+# Should only need to call this if the LCD gets stuck
+@public.route('/init-i2c-lcd', methods=['POST'])
+def init_i2c_lcd():
+    init()
+    return 'OK', 200
+
+@public.route('/backlight-i2c-lcd', methods=['POST'])
+def backlight_i2c_lcd():
+    import json
+    if 'state' in request.form:
+        setBacklight(json.loads(request.form['state']))
+    return json.dumps(getBacklight())
+
