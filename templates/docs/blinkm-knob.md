@@ -78,3 +78,10 @@ where the value of `errorThrown` depends on the numeric error code returned by t
 
 [tm]: http://thingm.com/products/blinkm.html
 [jqk]: https://github.com/aterrien/jQuery-Knob
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#doc-content a')
+            .attr('target', '_blank');
+    });
+</script>
