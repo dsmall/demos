@@ -295,6 +295,7 @@ var rascal = {
         transform: undefined,
         delimiter: '<br/>',
         suffix: '',
+        notfound: undefined,
         complete: function () {
             "use strict";
             console.log('rascal.directory: complete');
@@ -316,7 +317,11 @@ var rascal = {
                 rd.complete();
             }).error(function (jqXHR, textStatus, errorThrown) {
                 if (errorThrown === 'NOT FOUND') {
-                    $('#' + rascal.directory.listID).html('Folder "' + rascal.directory.directory + '" not found');
+                    if (typeof rascal.directory.notfound === 'string') {
+                        $('#' + rascal.directory.listID).html(rascal.directory.notfound);
+                    } else {
+                        $('#' + rascal.directory.listID).html('Folder "' + rascal.directory.directory + '" not found');
+                    }
                 }
             });
         },

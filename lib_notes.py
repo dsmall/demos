@@ -24,6 +24,8 @@ def note_write():
     import os, shutil
     try:
         fdir = request.form['fdir']
+        if not os.path.exists(ROOT + fdir):
+            os.makedirs(ROOT + fdir)
         fname = request.form['fname']
         s = request.form['text']
         nameFromText = ''
