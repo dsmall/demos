@@ -49,8 +49,8 @@ if env == RASCAL:
 import lib_smtp
 public.register_blueprint(lib_smtp.public)
 
-import lib_news
-public.register_blueprint(lib_news.public)
+import lib_bbc_news
+public.register_blueprint(lib_bbc_news.public)
 
 import lib_notes
 public.register_blueprint(lib_notes.public)
