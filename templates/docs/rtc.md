@@ -49,3 +49,10 @@ The Rascal Python library reads the date and time from RTC Plug via the I<sup>2<
 [ntp]: http://www.pool.ntp.org/en/
 [ds1340]: http://datasheets.maximintegrated.com/en/ds/DS1340-DS1340C.pdf
 
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#doc-content a')
+            .attr('target', '_blank');
+    });
+</script>
+
