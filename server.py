@@ -210,7 +210,13 @@ def xupload_file():
             print '## xupload ## ' + fpath
         except RequestEntityTooLarge:
             return 'File too large', 413
-        except:
+        except IOError as e:
+            import errno
+            _ = request.stream.read()
+            print '## xupload_file #: [{0}] {1}'.format(errno.errorcode[e.errno], e.strerror)
+            return 'Not Found', 404
+        except Exception, e:
+            print '## xupload_file ## {0}'.format(e)
             return 'Bad request', 400
     return 'OK', 200
 

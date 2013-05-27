@@ -123,6 +123,7 @@ rascal.directory provides methods to list or clear the specified directory. Thes
 ||transform||Function||`undefined`||A function which is called for each directory item and returns a transformed version of the item, for example, embedded in an `A` tag.||
 ||delimiter||String||`<br/>`||A string which will be inserted between each item||
 ||suffix||String||`''`||HTML prefix to be added to the end of the directory listing||
+||notfound||String||`undefined`||String to be displayed when directory is not found, instead of the default message `Folder "XXX" not found`. ||
 ||complete||Function||`()`||Callback function when the directory listing is complete||
 
 ||**Methods**||**Type**||**Arguments**||**Description**||
