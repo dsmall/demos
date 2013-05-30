@@ -1,5 +1,5 @@
  <!DOCTYPE html>
-<!-- JSLint 6 Oct 2012 jQuery $ -->
+<!-- dsmall 12 Jul 2012, 19 Apr 2013, 28 May 2013 -->
 <html lang="en">
 <head>
     <title>BBC News - Headlines</title>
@@ -28,11 +28,12 @@
             padding-right: 0;
             padding-bottom: 3px;
         }
-        .description span, a, a:hover {
+        .description, .weather span, a, a:hover {
             font-size: 14px;
             color: #ccc;
         }
         .wt {
+            position: relative;
             height: 172px;
             /* background-color: #666; */
         }
@@ -44,19 +45,40 @@
         }
         .weather {
             margin: 0 auto;
-            font-size: 17px;
+        }
+        .weather-title {
+            font-size: 18px;
+        }
+        .weather-title.forecast {
+            margin-bottom: 5px;
+        }
+        .weather-subtitle {
+            /* font-size: 14px; */
+            margin-bottom: 10px;
         }
         .weather-desc {
             font-size: 13px;
+            line-height: 1.3em;
+            margin-bottom: 0;
+        }
+        .weather-desc.forecast {
+            margin-bottom: 5px;
+        }
+        .indoor-temp {
+            position: absolute;
+            bottom: 0;
+            /* font-size: 18px; */
         }
         .tailline {
             margin-bottom: 0;
         }
-        .lastUpdate {
-            padding-top: 5px;
-            font-size: 13px;
+        .control-group {
+            margin-bottom: 5px;
         }
         label {
+            font-size: 13px;
+        }
+        .lastUpdate {
             font-size: 13px;
         }
     </style>
@@ -78,99 +100,135 @@
                 </div>
                 <div class="span3 wt">
                     <div id="temp" class="temp">&nbsp;</div>
-                    <div id="weather" class="weather">weather</div>
+                    <div id="weather" class="weather">&nbsp;</div>
                 </div>
             </div>
             <hr class="tailline" />
             <div class="row">
-                <div class="span2">
-                    <div id="lastUpdate" class="lastUpdate">&nbsp;</div>
-                </div>
-                <div class="span9">
+                <div class="span8">
                     <div class="control-group">
                         <div class="controls">
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="0" checked="checked" />
+                                <input type="radio" name="feed" value="0" checked="checked" />
                                 Top&nbsp;Stories
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="1" />
+                                <input type="radio" name="feed" value="1" />
                                 World
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="2" />
+                                <input type="radio" name="feed" value="2" />
                                 UK
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="3" />
-                                US&nbsp;&amp;&nbsp;Canada
+                                <input type="radio" name="feed" value="3" />
+                                <!-- US&nbsp;&amp;&nbsp;Canada -->
+                                US
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="4" />
+                                <input type="radio" name="feed" value="4" />
                                 Science
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="5" />
-                                Technology
+                                <input type="radio" name="feed" value="5" />
+                                Tech
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="6" />
+                                <input type="radio" name="feed" value="6" />
                                 Arts
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="7" />
+                                <input type="radio" name="feed" value="7" />
                                 Business
                             </label>
                             <label class="radio inline">
-                                <input type="radio" name="newsButtons" value="8" />
+                                <input type="radio" name="feed" value="8" />
                                 Latest
                             </label>
                         </div>
                     </div>
-                </div> <!-- /span9 -->
-            </div>
-        </div>
+                </div> <!-- /span8 -->
+                <div class="span3">
+                    <div class="control-group">
+                        <div class="controls">
+                            <label class="radio inline">
+                                <input type="radio" name="forecast" value="0" checked="checked" />
+                                Weather Now
+                            </label>
+                            <label class="radio inline">
+                                <input type="radio" name="forecast" value="1" />
+                                Next 3 Days
+                            </label>
+                        </div>
+                    </div>
+                </div> <!-- /span3 -->
+            </div> <!-- /row -->
+            <div id="lastUpdate" class="lastUpdate">&nbsp;</div>
+        </div> <!-- /well -->
     </div>
     <script language="javascript" type="text/javascript">
+        /*global $, clearInterval, setInterval */
         var
             interval = 15000,
             counter = 0,
             busy = false,
             int_timer;
 
-        function headlines() {
+        function showWeather(weather, temp) {
+            var wt, i, tempf;
+            $('#weather')
+                .empty();
+            if (weather.length === 1) {
+                wt = weather[0].title.split(': ');
+                $('#weather')
+                    .append('<div class="weather-title">' + wt[0] + '</div>')
+                    .append('<div class="weather-subtitle">' + wt[1] + '</div>')
+                    .append('<p class="weather-desc">' + weather[0].description + '</p>')
+                    .append('<span id="link"><a href="' + weather[0].link + '" target="bbc">Read more</a> &#8227;</span>');
+                if (temp !== '') {
+                    tempf = Math.round((parseFloat(temp) * 9 / 5) + 32);
+                    $('#weather')
+                        .append('<div class="indoor-temp">Indoors: ' + temp + ' (' + tempf + '\u00b0F)</div>');
+                }
+            } else {
+                $('#weather')
+                .append('<div class="weather-title forecast">Next 3 Days</div>');
+                for (i = 0; i < weather.length; i += 1) {
+                    $('#weather')
+                        .append('<p class="weather-desc forecast">' + weather[i].title + '</p>');
+                }
+            }
+            $('#weather')
+                .show();
+        }
+        
+        function showHeadlines() {
             "use strict";
-            var feed = $('input:radio:checked').attr('value');
+            var feed = $('input[name=feed]:radio:checked').attr('value'),
+                forecast = $('input[name=forecast]:radio:checked').attr('value');
+            var startTime, endTime;
             if (!busy) {
                 busy = true;
-                $.post('/headlines', { feed: feed }, function (response) {
+                startTime = new Date();
+                console.log('busy requesting feed=' + feed + ' forecast=' + forecast);
+                $.post('/headlines', { feed: feed, forecast: forecast }, function (response) {
                     var
                         data = $.parseJSON(response),
                         headlines = data.headlines,
                         weather = data.weather,
                         updated = data.updated,
                         headline;
+                    // console.log(response);
                     $('#date').text(data.date);
-                    if (weather.length > 0) {
-                        $('#temp').hide();
-                        $('#weather')
-                            .empty()
-                            .append('<p>' + weather[0].title.replace(': ', '<br/>') + '</p>')
-                            .append('<p class="weather-desc">' + weather[0].description + '</p>')
-                            .append('<p>Indoors: ' + data.temp + '</p>')
-                            .show();
-                    } else {
-                        $('#weather').hide();
-                        $('#temp').show();
-                        $('#temp').text(data.temp);
-                    }
-                    $('#lastUpdate').text('BBC News ' + data.lastUpdate);
-                    if (updated || (counter >= 12)) {
+                    // if (updated || (counter >= 12)) {
+                    if (updated) {
                         counter = 0;
                     }
                     if (counter >= headlines.length) {
                         counter = 0;
                     }
+                    $('#lastUpdate').text('BBC News ' + data.lastUpdate + 
+                        ' ' + (counter + 1) + '/' + headlines.length);
                     headline = headlines[counter];
                     $('.news').fadeOut(500, 0, function () {
                         $('#title').text(headline.title);
@@ -179,25 +237,35 @@
                         $('#link').html('<a href="' + headline.link + '" target="bbc">Read more<\/a> &#8227;');
                         $('.news').fadeTo(500, 1);
                     });
-                });
-                counter += 1;
-                busy = false;
+                    counter += 1;
+                    if (weather.length > 0) {
+                        $('#temp').hide();
+                        showWeather(weather, data.temp);
+                    } else {
+                        $('#weather').hide();
+                        $('#temp').show();
+                        $('#temp').text(data.temp);
+                    }
+                    busy = false;
+                    endTime = new Date();
+                    console.log('not busy elapsed ' + (endTime - startTime));
+               });
             }
         }
 
         $('input:radio').click(function () {
             "use strict";
             int_timer = clearInterval(int_timer);
-            headlines();
-            int_timer = setInterval(headlines, interval);
+            showHeadlines();
+            int_timer = setInterval(showHeadlines, interval);
         });
 
         $(document).ready(function () {
             "use strict";
             $('#weather').hide();
             $('#temp').show();
-            headlines();
-            int_timer = setInterval(headlines, interval);
+            showHeadlines();
+            int_timer = setInterval(showHeadlines, interval);
         });
     </script>
 </body>
