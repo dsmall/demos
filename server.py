@@ -11,14 +11,17 @@ env = RASCAL
 if env == WINDOWS:
     ROOT = 'c:/www/public/'
     EDITOR = 'http://localhost:5001/editor/'
+    CONFIG_FILE = 'c:/www/public/static/public.conf'
 elif env == MAC:
     ROOT = '/var/www/public/'
     EDITOR = 'http://localhost:5001/editor/'
+    CONFIG_FILE = '/var/www/public/static/public.conf'
 else:
     from uwsgidecorators import *
     import pytronics
     ROOT = '/var/www/public/'
     EDITOR = '/editor/'
+    CONFIG_FILE = '/var/www/public/static/public.conf'
 """ End environment definitions """
 
 public = Flask(__name__)

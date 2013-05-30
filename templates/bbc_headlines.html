@@ -209,8 +209,8 @@
             var startTime, endTime;
             if (!busy) {
                 busy = true;
-                startTime = new Date();
-                console.log('busy requesting feed=' + feed + ' forecast=' + forecast);
+                // startTime = new Date();
+                // console.log('busy requesting feed=' + feed + ' forecast=' + forecast);
                 $.post('/headlines', { feed: feed, forecast: forecast }, function (response) {
                     var
                         data = $.parseJSON(response),
@@ -247,8 +247,8 @@
                         $('#temp').text(data.temp);
                     }
                     busy = false;
-                    endTime = new Date();
-                    console.log('not busy elapsed ' + (endTime - startTime));
+                    // endTime = new Date();
+                    // console.log('not busy elapsed ' + (endTime - startTime));
                });
             }
         }
