@@ -164,7 +164,7 @@
                 </div> <!-- /span3 -->
             </div> <!-- /row -->
             <div id="lastUpdate" class="lastUpdate">&nbsp;</div>
-        </div> <!-- /well -->
+       </div> <!-- /well -->
     </div>
     <script language="javascript" type="text/javascript">
         /*global $, clearInterval, setInterval */
@@ -174,14 +174,21 @@
             busy = false,
             int_timer;
 
-        function showWeather(weather, temp) {
-            var wt, i, tempf;
+        function showWeather(channel, weather, temp) {
+            var location, wt, title, i, tempf;
+            // Given a channel title such as 'BBC Weather - Observations for  Oxford, United Kingdom'
+            // Set the location to the words between 'for' and the comma
+            // console.log(channel)
+            location = /for\s+([^,]+),/.exec(channel)[1];
             $('#weather')
                 .empty();
             if (weather.length === 1) {
+                // Split the item title on the colon
                 wt = weather[0].title.split(': ');
+                // Replace the weekday with the location
+                title = wt[0].replace(/^(\w+)/, location);
                 $('#weather')
-                    .append('<div class="weather-title">' + wt[0] + '</div>')
+                    .append('<div class="weather-title">' + title + '</div>')
                     .append('<div class="weather-subtitle">' + wt[1] + '</div>')
                     .append('<p class="weather-desc">' + weather[0].description + '</p>')
                     .append('<span id="link"><a href="' + weather[0].link + '" target="bbc">Read more</a> &#8227;</span>');
@@ -192,7 +199,7 @@
                 }
             } else {
                 $('#weather')
-                .append('<div class="weather-title forecast">Next 3 Days</div>');
+                    .append('<div class="weather-title forecast">Forecast for ' + location + '</div>');
                 for (i = 0; i < weather.length; i += 1) {
                     $('#weather')
                         .append('<p class="weather-desc forecast">' + weather[i].title + '</p>');
@@ -214,11 +221,14 @@
                 $.post('/headlines', { feed: feed, forecast: forecast }, function (response) {
                     var
                         data = $.parseJSON(response),
-                        headlines = data.headlines,
-                        weather = data.weather,
+                        newsChannel = data.headlines[0],
+                        headlines = data.headlines[1],
+                        weatherChannel = data.weather[0],
+                        weather = data.weather[1],
                         updated = data.updated,
                         headline;
                     // console.log(response);
+                    // console.log(newsChannel);
                     $('#date').text(data.date);
                     // if (updated || (counter >= 12)) {
                     if (updated) {
@@ -227,7 +237,7 @@
                     if (counter >= headlines.length) {
                         counter = 0;
                     }
-                    $('#lastUpdate').text('BBC News ' + data.lastUpdate + 
+                    $('#lastUpdate').html('&copy; BBC News ' + data.lastUpdate + 
                         ' ' + (counter + 1) + '/' + headlines.length);
                     headline = headlines[counter];
                     $('.news').fadeOut(500, 0, function () {
@@ -240,7 +250,7 @@
                     counter += 1;
                     if (weather.length > 0) {
                         $('#temp').hide();
-                        showWeather(weather, data.temp);
+                        showWeather(weatherChannel, weather, data.temp);
                     } else {
                         $('#weather').hide();
                         $('#temp').show();

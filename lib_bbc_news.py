@@ -2,7 +2,7 @@
     BBC News Headlines
     ~~~~~~~~~~~~~~~~~~
     Support for reading and parsing the BBC RSS news and weather feeds
-    dsmall 12 Jul 2012, 19 Apr 2013, 30 May 2013 
+    dsmall 12 Jul 2012, 19 Apr 2013, 31 May 2013 
 """
 from flask import Blueprint, render_template, request
 public = Blueprint('lib_bbc_news', __name__, template_folder='templates')
@@ -19,6 +19,7 @@ def parseHeadlines(xmldata):
     root = ET.fromstring(xmldata)
     headlines = []
     count = 1
+    channel = root.find('channel/title').text
     for item in root.findall('channel/item'):
         title = item.find('title').text
         description = item.find('description').text
@@ -36,7 +37,7 @@ def parseHeadlines(xmldata):
         count += 1
     if len(headlines) == 0:
         headlines = [ { 'title': 'Not available' } ]
-    return headlines
+    return (channel, headlines)
 
 def getFeed(url, etag = None, lastModified = None):
     """ Minimal RSS reader with support for etag and last-modified """
@@ -99,10 +100,10 @@ def getLocationID():
     return locationID
 
 # local globals
-headlines = [ { 'title': 'No news yet' } ]
+headlines = ('BBC News', [ { 'title': 'No news yet' } ])
 headlinesTag = '""'
 headlinesLastMod = ''
-weather = [ { 'title': 'No weather yet' } ]
+weather = ('BBC Weather', [ { 'title': 'No weather yet' } ])
 weatherTag = '""'
 weatherLastMod = ''
 lastFeed = 0
