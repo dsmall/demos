@@ -2,7 +2,7 @@
     BBC News Headlines
     ~~~~~~~~~~~~~~~~~~
     Support for reading and parsing the BBC RSS news and weather feeds
-    dsmall 12 Jul 2012, 19 Apr 2013, 29 May 2013 
+    dsmall 12 Jul 2012, 19 Apr 2013, 31 May 2013 
 """
 from flask import Blueprint, render_template, request
 public = Blueprint('lib_bbc_news', __name__, template_folder='templates')
@@ -19,7 +19,8 @@ def parseHeadlines(xmldata):
     root = ET.fromstring(xmldata)
     headlines = []
     count = 1
-    for item in root.getiterator('item'):
+    channel = root.find('channel/title').text
+    for item in root.findall('channel/item'):
         title = item.find('title').text
         description = item.find('description').text
         link = item.find('link').text
@@ -36,7 +37,7 @@ def parseHeadlines(xmldata):
         count += 1
     if len(headlines) == 0:
         headlines = [ { 'title': 'Not available' } ]
-    return headlines
+    return (channel, headlines)
 
 def getFeed(url, etag = None, lastModified = None):
     """ Minimal RSS reader with support for etag and last-modified """
@@ -66,6 +67,7 @@ def logStatus(which, what, status):
     print '## {0} ## {1} {2} {3}'.format(which, what, status, desc)
 
 def getHeadlines(section, lastModified):
+    """ Get BBC News headlines for specified section, cache control with last-modified  """
     sections = [ '', '/world', '/uk', '/world/us_and_canada',
         '/science_and_environment', '/technology', '/entertainment_and_arts',
         '/business', '/system/latest_published_content' ]
@@ -75,6 +77,7 @@ def getHeadlines(section, lastModified):
     return feed
 
 def getWeather(locationID, forecast, etag):
+    """ Get BBC Weather for specified location, cache control with etag """
     forecasts = [ 'observations', '3dayforecast']
     url = 'http://open.live.bbc.co.uk/weather/feeds/en/{0}/{1}.rss'.format(locationID, forecasts[forecast])
     feed = getFeed(url, etag = etag)
@@ -82,6 +85,7 @@ def getWeather(locationID, forecast, etag):
     return feed
 
 def getLocationID():
+    """ Get weather locationID from config file public.conf """
     import ConfigParser
     config = ConfigParser.SafeConfigParser()
     config.read(CONFIG_FILE)
@@ -96,10 +100,10 @@ def getLocationID():
     return locationID
 
 # local globals
-headlines = [ { 'title': 'No news yet' } ]
+headlines = ('BBC News', [ { 'title': 'No news yet' } ])
 headlinesTag = '""'
 headlinesLastMod = ''
-weather = [ { 'title': 'No weather yet' } ]
+weather = ('BBC Weather', [ { 'title': 'No weather yet' } ])
 weatherTag = '""'
 weatherLastMod = ''
 lastFeed = 0
