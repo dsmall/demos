@@ -92,8 +92,9 @@ The following is the code in `server.py` that renders this page:
     
     def render_markdown(path, doc_name):
         import markdown2
-        with open('/var/www/public/templates/' + path + doc_name + '.md', 'r') as mdf:
-            return render_template('documentation.html', title=doc_name, markdown=markdown2.markdown(mdf.read()))
+        with open(ROOT + 'templates/' + path + doc_name + '.md', 'r') as mdf:
+            return render_template('documentation.html', title=doc_name,
+                markdown=markdown2.markdown(mdf.read(), use_file_vars=True))
         return 'Not Found', 404
 
 ### Further Reading ###
