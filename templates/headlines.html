@@ -131,12 +131,12 @@
             $.post('/headlines', { feed: feed }, function (response) {
                 var
                     data = $.parseJSON(response),
-                    headlines = data.headlines,
+                    headlines = data.headlines[1],
                     updated = data.updated,
                     headline;
                 $('#date').text(data.date);
                 $('#temp').text(data.temp);
-                $('#lastUpdate').text('BBC News ' + data.lastUpdate);
+                $('#lastUpdate').html('&copy; BBC News ' + data.lastUpdate);
                 if (updated || (counter >= 12)) {
                     counter = 0;
                 }
