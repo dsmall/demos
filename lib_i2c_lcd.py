@@ -4,6 +4,9 @@
     ~~~~~~~~~~~~~~~
     Support for JeeLabs i2c LCD Plug and HD44780 LCD
     dsmall 6 July 2012, 1 June 2013
+    Has been tested with a 16 x 2 LCD but should work with up to 20 x 4 LCD
+    When reading from a 40 x 2 LCD, line1 is [data0] + [data2] and line2 is [data1] + [data3]
+    See http://web.alfredstate.edu/weimandn/lcd/lcd_addressing/lcd_addressing_index.html
 """
 
 from flask import Blueprint, render_template, request
@@ -110,7 +113,6 @@ def getBacklight():
     return ((_i2cRead(LCD, MCP_IODIR, 'B') & MCP_BACKLIGHT) == 0)
 
 # Simulate LCD for read back
-# http://web.alfredstate.edu/weimandn/lcd/lcd_addressing/lcd_addressing_index.html
 _sim_mem = [' '] * 128
 _sim_cur = 0
 
@@ -129,9 +131,12 @@ def _simWrite(ch):
          ch = '°'
     _sim_mem[_sim_cur] = ch
     _sim_cur += 1
+    if 0x27 < _sim_cur < 0x40:
+        _sim_cur = 0x40
+    elif _sim_cur > 0x67:
+        _sim_cur = 0
 
 def _simRead():
-    global _sim_mem
     return (''.join(_sim_mem[0x00:0x13]), ''.join(_sim_mem[0x40:0x53]),
             ''.join(_sim_mem[0x14:0x27]), ''.join(_sim_mem[0x54:0x67]))
 # End of simulation
@@ -165,6 +170,11 @@ def send_to_i2c_lcd():
     writeString(request.form['line1'])
     setCursor(1, 0)
     writeString(request.form['line2'])
+    if 'line3' in request.form:
+        setCursor(2, 0)
+        writeString(request.form['line3'])
+        setCursor(3, 0)
+        writeString(request.form['line4'])
     return 'OK', 200
 
 @public.route('/clear-i2c-lcd', methods=['POST'])
