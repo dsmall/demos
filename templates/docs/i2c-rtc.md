@@ -1,8 +1,8 @@
-### JeeLabs RTC Plug  ###
+### I2C RTC Plug  ###
 
 --
 
-The RTC Plug is a small board containing a low power real-time clock with battery backup
+The I2C RTC Plug is a small board containing a low power real-time clock with battery backup
 manufactured by [JeeLabs][jl] and also available from [Modern Device][md]. It continues 
 to track the time with second by second resolution while powered off if the optional battery is fitted.
 

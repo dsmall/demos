@@ -1,30 +1,38 @@
 <!DOCTYPE html>
-<!-- dsmall 6 July 2012, 18 May 2013 -->
+<!-- dsmall 6 July 2012, 1 June 2013 -->
+<!-- Tested with 16 x 2 LCD but should work with up to 20 x 4 LCD -->
+<!-- For more columns, change width of input.lcd-line and LCD_COLS -->
+<!-- For more rows, add inputs for line3 and line4, then add them to send and read JavaSript -->
 <html>
 <head>
-    <title>JeeLabs I2C LCD</title>
+    <title>I2C LCD demo</title>
     {% include "include/rascal-head.html" %}
     <style>
         .lcd-frame {
             margin: 10px 0 20px;
             border: 10px solid #333;
             padding: 5px 15px 10px;
-            /* background-color: #3464c6; */
             background-color: #225;
             display: inline-block;
         }
-        #line1, #line2 {
+        .lcd-frame.light {
+            background-color: #3464c6;
+        }
+        /* #line1, #line2 { */
+        input.lcd-line {
             margin: 0;
             padding: 2px 0;
             border-style: none;
             font-family: 'VT323', 'Courier', sans-serif;
             font-size: 60px;
-            /* color: #fff; */
             color: #444;
-            /* background-color: #3464c6; */
             background-color: #225;
             width: 405px;
             height: 60px;
+        }
+        input.lcd-line.light {
+            color: #fff;
+            background-color: #3464c6;
         }
     </style>
     <style>
@@ -37,43 +45,42 @@
     {% include "include/rascal-topbar.html" %}
     <div class="container">
         <div class="well rascal">
-            <h1>JeeLabs I2C LCD</h1>
+            <h1>I2C LCD demo</h1>
             <p>Enter some text to send to the LCD display</p>
-            <span class="well lcd-frame">
-                <input id="line1" type="text" value="Science and" /><br/>
-                <input id="line2" type="text" value="the Arts" />
-            </span><br/>
-            <input id="send-to-lcd" type="button" value="Send to LCD" class="btn btn-large btn-danger rascal" alt="Send to LCD">
-            <input id="clear-lcd" type="button" value="Clear LCD" class="btn btn-large btn-primary rascal" alt="Clear LCD">
-            <input id="init-lcd" type="button" value="Init LCD" class="btn btn-large btn-warning rascal" alt="Init LCD">
-            <input id="backlight" type="button" value="Backlight" class="btn btn-large btn-inverse rascal" alt="Backlight">
+            <div class="well lcd-frame">
+                <input id="line1" class="lcd-line" type="text" value="Science and"><br/>
+                <input id="line2" class="lcd-line" type="text" value="the Arts">
+            </div>
+            <div>
+                <input id="send-to-lcd" type="button" value="Send to LCD" class="btn btn-large btn-danger rascal" alt="Send to LCD">
+                <input id="clear-lcd" type="button" value="Clear LCD" class="btn btn-large btn-primary rascal" alt="Clear LCD">
+                <a id="read-from-lcd" class="btn btn-large btn-success rascal" href="#">Read from LCD <i id="read-icon" class="icon-play icon-white"></i></a>
+                <input id="backlight" type="button" value="Backlight" class="btn btn-large btn-inverse rascal" alt="Backlight">
+                <input id="init-lcd" type="button" value="Init LCD" class="btn btn-large btn-warning rascal" alt="Init LCD">
+            </div>
         </div>
     </div>
     {% include "include/doc-tab.html" %}
     <script language="javascript" type="text/javascript">
-        /*global $ */
+        /*global $, clearInterval, setInterval */
+        var LCD_COLS = 16;
         var backlight;
+        var int_timer;
         
         function setBacklight(state) {
             backlight = state;
             if (backlight) {
-                $('.lcd-frame')
-                    .css('background-color', '#3464c6');
-                $('#line1,#line2')
-                    .css('color', '#fff')
-                    .css('background-color', '#3464c6');
+                $('.lcd-frame').addClass('light');
+                $('.lcd-line').addClass('light');
                 $('#backlight')
                     .removeClass('btn-inverse')
-                    .addClass('btn-default')
+                    .addClass('btn-default');
             } else {
-                $('.lcd-frame')
-                    .css('background-color', '#225');
-                $('#line1,#line2')
-                    .css('color', '#444')
-                    .css('background-color', '#225');
+                $('.lcd-frame').removeClass('light');
+                $('.lcd-line').removeClass('light');
                 $('#backlight')
                     .removeClass('btn-default')
-                    .addClass('btn-inverse')
+                    .addClass('btn-inverse');
             }
         }
  
@@ -81,22 +88,54 @@
             "use strict";
             $.post('/send-to-i2c-lcd', { line1: $('#line1').val(), line2: $('#line2').val() });
         });
+
+        function readLCD() {
+            "use strict";
+            $.post('/read-from-i2c-lcd', function (response) {           
+                var data = JSON.parse(response);
+                console.log(typeof data[0]);
+                $('#line1').val(data[0].substr(0, LCD_COLS));
+                $('#line2').val(data[1].substr(0, LCD_COLS));
+            });
+        }
+
+        function stopRead() {
+            "use strict";
+            int_timer = clearInterval(int_timer);
+            $('#read-from-lcd').removeClass('btn-danger').addClass('btn-success');
+            $('#read-icon').removeClass('icon-stop').addClass('icon-play');
+        }
+        
+        $('#read-from-lcd').click(function () {
+            "use strict";
+            if (int_timer === undefined) {
+                $('#read-from-lcd').removeClass('btn-success').addClass('btn-danger');
+                $('#read-icon').removeClass('icon-play').addClass('icon-stop');
+                readLCD();
+                int_timer = setInterval(readLCD, 1000);
+            } else {
+                stopRead();
+            }
+        });
+
         $('#clear-lcd').click(function () {
             "use strict";
             $.post('/clear-i2c-lcd');
             $('#line1').val('');
             $('#line2').val('');
         });
-        $('#init-lcd').click(function () {
-            "use strict";
-            $.post('/init-i2c-lcd');
-            setBacklight(true);
-        });
+ 
         $('#backlight').click(function () {
             "use strict";
             $.post('/backlight-i2c-lcd', { state: !backlight }, function (response) {
                 setBacklight(JSON.parse(response));
             });
+        });
+
+        $('#init-lcd').click(function () {
+            "use strict";
+            $.post('/init-i2c-lcd');
+            setBacklight(true);
         });
                 
         $(document).ready(function () {

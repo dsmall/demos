@@ -1,13 +1,14 @@
-### JeeLabs LCD Plug  ###
+### I2C LCD Plug  ###
 
 --
 
-The LCD Plug is a small board manufactured by [JeeLabs][jl] and also available from [Modern Device][md]. 
+The I2C LCD Plug is a small board manufactured by [JeeLabs][jl] and also available from [Modern Device][md]. 
 It contains an [MCP23008][mcp23008] I/O expander which connects to most common 16-pin character LCD displays
 that use the [HD44780][hd44780] standard.
 
-This application can write to the LCD display and clear it. The LCD is initialised automatically but
-can be re-initialised if it gets stuck. The application can also toggle the backlight.
+This application can write to the LCD display, clear it and toggle the backlight. The LCD is initialised automatically but
+can be re-initialised if it gets stuck. The library maintains a virtual copy of the LCD controller memory which you
+can read to see what the LCD is displaying.
 
 A two-wire I<sup>2</sup>C bus running at 3.3V is used as interconnect, with the power and signal
 lines brought out to to both sides of the board to allow daisy-chaining with other JeeLabs plugs.

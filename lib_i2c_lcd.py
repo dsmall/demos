@@ -1,9 +1,14 @@
+# This Python file uses the following encoding: utf-8
 """
     I2C LCD Library
     ~~~~~~~~~~~~~~~
     Support for JeeLabs i2c LCD Plug and HD44780 LCD
-    dsmall 6 July 2012, 27 May 2013
+    dsmall 6 July 2012, 1 June 2013
+    Has been tested with a 16 x 2 LCD but should work with up to 20 x 4 LCD
+    When reading from a 40 x 2 LCD, line1 is [data0] + [data2] and line2 is [data1] + [data3]
+    See http://web.alfredstate.edu/weimandn/lcd/lcd_addressing/lcd_addressing_index.html
 """
+
 from flask import Blueprint, render_template, request
 public = Blueprint('lib_i2c_lcd', __name__, template_folder='templates')
 
@@ -107,23 +112,56 @@ def setBacklight(state = True):
 def getBacklight():
     return ((_i2cRead(LCD, MCP_IODIR, 'B') & MCP_BACKLIGHT) == 0)
 
+# Simulate LCD for read back
+_sim_mem = [' '] * 128
+_sim_cur = 0
+
+def _simSetCursor(cur):
+    global _sim_cur
+    _sim_cur = cur
+
+def _simClear():
+    global _sim_mem, _sim_cur
+    _sim_mem = [' '] * 128
+    _sim_cur = 0
+
+def _simWrite(ch):
+    global _sim_mem, _sim_cur
+    if ord(ch) == 0xdf:
+         ch = '°'
+    _sim_mem[_sim_cur] = ch
+    _sim_cur += 1
+    if 0x27 < _sim_cur < 0x40:
+        _sim_cur = 0x40
+    elif _sim_cur > 0x67:
+        _sim_cur = 0
+
+def _simRead():
+    return (''.join(_sim_mem[0x00:0x13]), ''.join(_sim_mem[0x40:0x53]),
+            ''.join(_sim_mem[0x14:0x27]), ''.join(_sim_mem[0x54:0x67]))
+# End of simulation
+
 def setCursor(row, col):
     rowstart = [ 0x00, 0x40, 0x14, 0x54 ]
     writeCmd(LCD_DDADDR | (rowstart[row] + col))
-    
+    _simSetCursor(rowstart[row] + col)
+
 def reset(clear = True):
     # Check if LCD has been initialised
     if _i2cRead(LCD, MCP_IOCON, 'B') == MCP_IOCON_INIT:
         if clear:
             writeCmd(LCD_CLR)
+            _simClear()
         else:
             setCursor(0, 0)
     else:
-        init()      
+        init()
+        _simClear()
 
 def writeString(s):
     for i in s:
         writeData(ord(i))
+        _simWrite(i)
 
 
 @public.route('/send-to-i2c-lcd', methods=['POST'])
@@ -132,6 +170,11 @@ def send_to_i2c_lcd():
     writeString(request.form['line1'])
     setCursor(1, 0)
     writeString(request.form['line2'])
+    if 'line3' in request.form:
+        setCursor(2, 0)
+        writeString(request.form['line3'])
+        setCursor(3, 0)
+        writeString(request.form['line4'])
     return 'OK', 200
 
 @public.route('/clear-i2c-lcd', methods=['POST'])
@@ -151,4 +194,13 @@ def backlight_i2c_lcd():
     if 'state' in request.form:
         setBacklight(json.loads(request.form['state']))
     return json.dumps(getBacklight())
+
+@public.route('/read-from-i2c-lcd', methods=['POST'])
+def read_from_i2c_lcd():
+    import json
+    try:
+        return json.dumps(_simRead())
+    except Exception, e:
+        print '## read_from_i2c_lcd ## Unexpected error: %s' % str(e)
+    return 'Bad request', 400
 
